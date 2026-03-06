@@ -33,5 +33,6 @@ coverage
 tmp
 temp
 
-# Plan (local-only development tracking)
+# Plan and Claude config (local-only)
 plan/
+CLAUDE.md
