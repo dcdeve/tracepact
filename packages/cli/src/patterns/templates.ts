@@ -39,8 +39,8 @@ export const DEMO_CONFIG_TEMPLATE = `import { defineConfig } from '@tracepact/co
 export default defineConfig({});
 `;
 
-export const DEMO_TEST_TEMPLATE = `import { describe, expect } from 'vitest';
-import { test, createMockTools, mockReadFile, denyAll } from '@tracepact/vitest';
+export const DEMO_TEST_TEMPLATE = `import { describe, expect, test } from 'vitest';
+import { createMockTools, mockReadFile, denyAll } from '@tracepact/vitest';
 
 // Demo: testing a code review agent
 // This runs 100% offline with mock tools — no API key needed.
@@ -75,8 +75,8 @@ export const SYSTEM_PROMPT_CONFIG_TEMPLATE = `import { defineConfig } from '@tra
 export default defineConfig({});
 `;
 
-export const SYSTEM_PROMPT_TEST_TEMPLATE = `import { describe, expect } from 'vitest';
-import { test, createMockTools, mockReadFile, denyAll } from '@tracepact/vitest';
+export const SYSTEM_PROMPT_TEST_TEMPLATE = `import { describe, expect, test } from 'vitest';
+import { createMockTools, mockReadFile, denyAll } from '@tracepact/vitest';
 
 const sandbox = createMockTools({
   read_file: mockReadFile({
@@ -93,8 +93,8 @@ describe('my agent', () => {
 });
 `;
 
-export const API_CLIENT_TEST_TEMPLATE = `import { describe, expect } from 'vitest';
-import { test, createMockTools, denyAll, MockSandbox } from '@tracepact/vitest';
+export const API_CLIENT_TEST_TEMPLATE = `import { describe, expect, test } from 'vitest';
+import { createMockTools, denyAll, MockSandbox } from '@tracepact/vitest';
 
 // Pattern: API client agent — calls external APIs, parses responses, writes results.
 // Mock the HTTP/fetch tool to return controlled responses.
@@ -138,8 +138,8 @@ describe('api client agent', () => {
 });
 `;
 
-export const DATA_TRANSFORMER_TEST_TEMPLATE = `import { describe, expect } from 'vitest';
-import { test, createMockTools, mockReadFile, MockSandbox } from '@tracepact/vitest';
+export const DATA_TRANSFORMER_TEST_TEMPLATE = `import { describe, expect, test } from 'vitest';
+import { createMockTools, mockReadFile, MockSandbox } from '@tracepact/vitest';
 
 // Pattern: Data transformer agent — reads input files, transforms data, writes output.
 // Mock read_file with sample data and capture writes.
