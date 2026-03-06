@@ -1,5 +1,12 @@
 # @tracepact/cli
 
+## 0.3.5
+
+### Patch Changes
+
+- Updated dependencies [[`db4f59c`](https://github.com/dcdeve/tracepact/commit/db4f59ce719c00208e190329178e24ea22f01f9e)]:
+  - @tracepact/core@0.3.5
+
 ## 0.3.4
 
 ### Patch Changes
