@@ -1,4 +1,8 @@
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 import { audit } from './commands/audit.js';
 import { cache } from './commands/cache.js';
 import { capture } from './commands/capture.js';
@@ -12,7 +16,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name('tracepact')
     .description('Test AI agents with deterministic, layered assertions')
-    .version('0.3.0')
+    .version(version)
     .enablePositionalOptions();
 
   // Default command: run
