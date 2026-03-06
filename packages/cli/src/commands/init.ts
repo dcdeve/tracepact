@@ -137,7 +137,7 @@ async function initWizard(force: boolean): Promise<void> {
   } catch {
     providerSpinner.stop('Could not load models (using defaults)');
     // Fall back to simple config generation
-    generateConfigFiles(projectType, skillPath, undefined, undefined, undefined, force);
+    generateConfigFiles(skillPath, undefined, undefined, undefined, force);
     p.outro('Config created. Run `npx tracepact` to get started.');
     return;
   }
