@@ -44,9 +44,9 @@ export class DriverRegistry {
   private defaultName: string;
 
   constructor(config: TracepactConfig) {
-    this.defaultName = config.providers.default;
+    this.defaultName = config.providers?.default ?? '';
 
-    for (const [name, providerConfig] of Object.entries(config.providers)) {
+    for (const [name, providerConfig] of Object.entries(config.providers ?? {})) {
       if (name === 'default') continue;
       if (typeof providerConfig === 'string') continue;
 

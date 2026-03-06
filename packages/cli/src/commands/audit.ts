@@ -1,5 +1,5 @@
 import { AuditEngine, parseSkill } from '@tracepact/core';
-import type { AuditReport, AuditSeverity } from '@tracepact/core';
+import type { AuditReport, AuditSeverity, ParsedSkill } from '@tracepact/core';
 
 const SEVERITY_ICONS: Record<AuditSeverity, string> = {
   critical: '\u26D4',
@@ -21,10 +21,14 @@ interface AuditOptions {
 }
 
 export async function audit(skillPath: string, opts: AuditOptions): Promise<void> {
-  const skill = await parseSkill(skillPath).catch((err: any) => {
+  let skill: ParsedSkill;
+  try {
+    skill = await parseSkill(skillPath);
+  } catch (err: any) {
     console.error(`Error parsing ${skillPath}: ${err.message}`);
-    process.exit(2);
-  });
+    process.exitCode = 2;
+    return;
+  }
 
   const engine = new AuditEngine();
   const report = engine.auditSkill(skill);
@@ -39,10 +43,10 @@ export async function audit(skillPath: string, opts: AuditOptions): Promise<void
     const threshold = SEVERITY_ORDER[opts.failOn as AuditSeverity] ?? 1;
     const hasViolation = report.findings.some((f) => SEVERITY_ORDER[f.severity] <= threshold);
     if (hasViolation) {
-      process.exit(1);
+      process.exitCode = 1;
     }
   } else if (!report.pass) {
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 

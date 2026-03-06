@@ -27,8 +27,7 @@ export async function doctor(): Promise<void> {
   if (configFile) {
     pass('Config', configFile);
   } else {
-    fail('Config', 'not found — run `tracepact init`');
-    hasCriticalFailure = true;
+    warn('Config', 'not found — run `tracepact init` (only needed for live tests)');
   }
 
   // 4. SKILL.md
@@ -85,7 +84,7 @@ export async function doctor(): Promise<void> {
   console.log('');
   if (hasCriticalFailure) {
     console.log('Critical issues found. Fix them before running tests.');
-    process.exit(2);
+    process.exitCode = 2;
   } else {
     console.log('All critical checks passed.');
   }

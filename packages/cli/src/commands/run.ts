@@ -38,24 +38,28 @@ export async function runTests(opts: RunOptions, passthroughArgs: string[] = [])
       'Error: --config is managed by tracepact. Use tracepact.vitest.ts instead.\n' +
         'Pass vitest flags after -- if needed: tracepact run --live -- --reporter=verbose'
     );
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
 
   const configPath = findConfig();
+  if (!configPath) return;
+
   const vitestArgs = ['vitest', 'run', '--config', configPath, ...passthroughArgs];
 
   try {
     execSync(`npx ${vitestArgs.join(' ')}`, { stdio: 'inherit', env });
   } catch (err: any) {
-    process.exit(err.status ?? 1);
+    process.exitCode = err.status ?? 1;
   }
 }
 
-function findConfig(): string {
+function findConfig(): string | undefined {
   const candidates = ['tracepact.vitest.ts', 'tracepact.vitest.js', 'vitest.config.ts'];
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
   console.error('No tracepact.vitest.ts found. Run `tracepact init` first.');
-  process.exit(2);
+  process.exitCode = 2;
+  return undefined;
 }

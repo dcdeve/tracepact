@@ -19,9 +19,15 @@ describe('defineConfig', () => {
     expect(config.vitest).toBeUndefined();
   });
 
-  it('throws ConfigError when providers.default is missing', () => {
+  it('throws ConfigError when providers exists but default is missing', () => {
     expect(() => defineConfig({ providers: {} as any })).toThrow(ConfigError);
-    expect(() => defineConfig({})).toThrow(ConfigError);
+  });
+
+  it('allows empty config for mock-only mode', () => {
+    const config = defineConfig({});
+    expect(config.providers).toBeUndefined();
+    expect(config.cache).toEqual(DEFAULT_CACHE);
+    expect(config.redaction).toEqual(DEFAULT_REDACTION);
   });
 
   it('throws ConfigError when default references nonexistent provider', () => {
@@ -70,7 +76,7 @@ describe('defineConfig', () => {
 
   it('ConfigError has correct code and field', () => {
     try {
-      defineConfig({});
+      defineConfig({ providers: {} as any });
     } catch (err) {
       expect(err).toBeInstanceOf(ConfigError);
       expect((err as ConfigError).code).toBe('CONFIG_ERROR');
