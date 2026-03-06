@@ -18,7 +18,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dcdeve/tracepact.git",
+    "url": "git+https://github.com/dcdeve/tracepact.git",
     "directory": "packages/core"
   },
   "dependencies": {

@@ -12,14 +12,16 @@
       "import": "./dist/setup.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dcdeve/tracepact.git",
+    "url": "git+https://github.com/dcdeve/tracepact.git",
     "directory": "packages/vitest"
   },
   "dependencies": {

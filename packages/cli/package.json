@@ -4,9 +4,11 @@
   "description": "CLI for TracePact — interactive setup, model catalog, test runner",
   "type": "module",
   "bin": {
-    "tracepact": "./dist/index.js"
+    "tracepact": "dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -26,12 +28,18 @@
     "typescript": "^5.5.0",
     "vitest": "^2.1.0"
   },
-  "keywords": ["ai", "testing", "cli", "tracepact", "agent"],
+  "keywords": [
+    "ai",
+    "testing",
+    "cli",
+    "tracepact",
+    "agent"
+  ],
   "author": "dcdeve",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dcdeve/tracepact.git",
+    "url": "git+https://github.com/dcdeve/tracepact.git",
     "directory": "packages/cli"
   }
 }
