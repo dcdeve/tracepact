@@ -58,6 +58,12 @@ export async function runSkill(
   }
 
   // Mock-only mode: return trace from sandbox
+  console.warn(
+    '[tracepact] runSkill() called without TRACEPACT_LIVE=1 or replay. ' +
+      'Returning empty mock result. Set TRACEPACT_LIVE=1 for live execution, ' +
+      'pass replay: "path/to/cassette.json" for replay, ' +
+      'or use executePrompt() from @tracepact/core for direct live calls.'
+  );
   const sandbox = input.sandbox ?? new MockSandbox({});
   return {
     output: '',

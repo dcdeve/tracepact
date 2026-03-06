@@ -64,6 +64,12 @@ export class AnthropicDriver implements AgentDriver {
   }
 
   async run(input: RunInput): Promise<RunResult> {
+    if (!input.skill) {
+      throw new DriverError(
+        'RunInput.skill is required. Pass a ParsedSkill (from parseSkill()) or { systemPrompt: "..." }.'
+      );
+    }
+
     const client = await this.getClient();
     const startTime = performance.now();
     const temp = input.config?.temperature ?? DEFAULT_TEMPERATURE;

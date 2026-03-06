@@ -1,4 +1,4 @@
-import type { ToolDefs, TypedToolDefinition } from './types.js';
+import type { JsonSchema, ToolDefs, TypedToolDefinition } from './types.js';
 
 export function defineTools<T extends ToolDefs>(defs: T): TypedToolDefinition[] {
   const names = Object.keys(defs);
@@ -11,27 +11,58 @@ export function defineTools<T extends ToolDefs>(defs: T): TypedToolDefinition[] 
   return names.map((name) => {
     const schema = defs[name];
     let jsonSchema: Record<string, unknown>;
-    try {
-      jsonSchema = zodToJsonSchema(schema);
-    } catch {
-      jsonSchema = { type: 'object' };
+
+    if (isJsonSchema(schema)) {
+      jsonSchema = schema;
+    } else {
+      try {
+        jsonSchema = zodToJsonSchema(schema);
+      } catch {
+        jsonSchema = { type: 'object' };
+      }
     }
+
     return { name, schema, jsonSchema };
   });
 }
 
+function isJsonSchema(val: unknown): val is JsonSchema {
+  return (
+    val !== null &&
+    typeof val === 'object' &&
+    'type' in val &&
+    typeof (val as any).type === 'string' &&
+    !('_def' in val)
+  );
+}
+
 function zodToJsonSchema(schema: any): Record<string, unknown> {
+  // Try zod v4's built-in toJSONSchema if available
+  if (typeof schema.toJSONSchema === 'function') {
+    try {
+      return schema.toJSONSchema();
+    } catch {
+      // fall through to manual conversion
+    }
+  }
+
   const def = schema?._def;
   if (!def) return { type: 'object' };
 
-  switch (def.typeName) {
+  const typeName = def.typeName;
+
+  switch (typeName) {
     case 'ZodObject': {
-      const shape = def.shape();
+      // shape can be a function (zod v3) or a plain object (zod v4)
+      const rawShape = def.shape;
+      const shape = typeof rawShape === 'function' ? rawShape() : rawShape;
+      if (!shape || typeof shape !== 'object') return { type: 'object' };
+
       const properties: Record<string, unknown> = {};
       const required: string[] = [];
       for (const [key, val] of Object.entries(shape)) {
         properties[key] = zodToJsonSchema(val as any);
-        if ((val as any)?._def?.typeName !== 'ZodOptional') {
+        if (!isOptional(val)) {
           required.push(key);
         }
       }
@@ -49,7 +80,20 @@ function zodToJsonSchema(schema: any): Record<string, unknown> {
       return { type: 'string', enum: def.values };
     case 'ZodOptional':
       return zodToJsonSchema(def.innerType);
+    case 'ZodDefault':
+      return zodToJsonSchema(def.innerType);
+    case 'ZodNullable': {
+      const inner = zodToJsonSchema(def.innerType);
+      return { ...inner, nullable: true };
+    }
     default:
       return { type: 'object' };
   }
+}
+
+function isOptional(val: any): boolean {
+  const typeName = val?._def?.typeName;
+  if (typeName === 'ZodOptional') return true;
+  if (typeName === 'ZodDefault') return true;
+  return false;
 }
