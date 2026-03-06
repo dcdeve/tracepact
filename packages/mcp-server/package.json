@@ -1,6 +1,6 @@
 {
   "name": "@tracepact/mcp-server",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "MCP server for TracePact — exposes CLI commands as MCP tools for agentic IDEs",
   "type": "module",
   "bin": {
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@tracepact/core": "0.3.3"
+    "@tracepact/core": "0.3.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

@@ -1,6 +1,6 @@
 {
   "name": "@tracepact/vitest",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Vitest plugin for TracePact — custom matchers and test helpers",
   "type": "module",
   "exports": {
@@ -25,7 +25,7 @@
     "directory": "packages/vitest"
   },
   "dependencies": {
-    "@tracepact/core": "0.3.3"
+    "@tracepact/core": "0.3.4"
   },
   "peerDependencies": {
     "vitest": ">=2.0.0"
