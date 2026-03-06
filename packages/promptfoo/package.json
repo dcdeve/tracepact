@@ -1,6 +1,6 @@
 {
   "name": "@tracepact/promptfoo",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "TracePact integration for Promptfoo — tool-trace assertions in your eval config",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -12,7 +12,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -23,7 +25,7 @@
     "directory": "packages/promptfoo"
   },
   "dependencies": {
-    "@tracepact/core": "0.3.2"
+    "@tracepact/core": "0.3.3"
   },
   "peerDependencies": {
     "promptfoo": ">=0.80.0"
