@@ -1,22 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { doctor } from '../src/commands/doctor.js';
 
 describe('doctor', () => {
   const logs: string[] = [];
   const originalLog = console.log;
-  const originalExit = process.exit;
 
   beforeEach(() => {
     logs.length = 0;
     console.log = (...args: unknown[]) => {
       logs.push(args.join(' '));
     };
-    process.exit = vi.fn() as any;
   });
 
   afterEach(() => {
     console.log = originalLog;
-    process.exit = originalExit;
   });
 
   it('checks Node.js version', async () => {
@@ -38,7 +35,7 @@ describe('doctor', () => {
     const configLog = logs.find((l) => l.includes('Config'));
     expect(configLog).toBeDefined();
     // No config file in test dir
-    expect(configLog).toContain('[FAIL]');
+    expect(configLog).toContain('[warn]');
   });
 
   it('reports SKILL.md status', async () => {
