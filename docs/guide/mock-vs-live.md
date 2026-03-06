@@ -124,6 +124,22 @@ const health = await driver.healthCheck();
 expect(health.model).toContain('gpt-4o-mini');
 ```
 
+### Glob patterns in sandbox and ProcessSandbox
+
+`mockReadFile` and `ProcessSandbox` allowlists support glob patterns. `**/*.ext` matches files at any depth **including the root**:
+
+```typescript
+const sandbox = createMockTools({
+  read_file: mockReadFile({
+    '**/*.ts': '// typescript file',   // matches index.ts, src/app.ts, a/b/c.ts
+    'src/*.ts': '// src only',         // matches src/app.ts but NOT src/lib/util.ts
+  }),
+});
+```
+
+- `**` matches any number of directories (including zero)
+- `*` matches within a single directory (does not cross `/`)
+
 ### Semantic assertions need descriptive topics
 
 `toHaveSemanticOverlap` compares embeddings. Short single-word topics like `"deployment"` have low cosine similarity against full paragraphs. Use descriptive phrases:

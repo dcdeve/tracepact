@@ -85,6 +85,7 @@ const sandbox = createMockTools({
   read_file: mockReadFile({
     'src/app.ts': 'export function main() {}',
     'src/**/*.test.ts': '// test file',     // glob patterns work
+    '**/*.json': '{}',                       // matches root AND nested files
   }),
   write_file: captureWrites(),                // records what was written
   bash: mockBash({
@@ -364,6 +365,22 @@ expect(replayed.trace).toHaveCalledTool('deploy', { env: 'staging' });
 | `@tracepact/cli` | CLI commands: `run`, `init`, `models`, `audit`, `capture`, `cache`, `cost-report`, `doctor` |
 | `@tracepact/promptfoo` | Promptfoo integration — use TracePact matchers in eval configs |
 | `@tracepact/mcp-server` | MCP server — exposes TracePact as tools for AI coding assistants (Cursor, Claude Code, Windsurf) |
+
+## Gotchas
+
+### Glob patterns: `**` vs `*`
+- `**/*.ts` matches files at **any depth including root** (`index.ts`, `src/app.ts`, `a/b/c.ts`)
+- `*.ts` matches only in the **current directory** (`index.ts` but not `src/app.ts`)
+- This applies to both `mockReadFile` patterns and `ProcessSandbox` fs allowlists
+
+### CacheStore `enabled: false`
+When `cache.enabled` is `false` in config, the cache does not read or write. Use `TRACEPACT_NO_CACHE=1` at runtime for the same effect.
+
+### `tracepact capture` and tool schemas
+`capture` auto-generates permissive schemas from SKILL.md frontmatter `tools:` field. These accept any JSON object. For strict validation, use `defineTools` with zod schemas in your test files.
+
+### CacheStore uses RunManifest as key
+Cache entries are keyed by `RunManifest` (skill hash + provider + model + prompt hash), not simple strings. Use `computeManifest()` to generate the manifest from a parsed skill.
 
 ## Common Patterns
 

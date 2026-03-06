@@ -7,6 +7,7 @@ import {
   mockReadFile,
   passthrough,
 } from '../src/sandbox/factories.js';
+import { ProcessSandbox } from '../src/sandbox/process/process-sandbox.js';
 
 describe('MockSandbox', () => {
   it('mockReadFile returns content for exact match', async () => {
@@ -32,6 +33,16 @@ describe('MockSandbox', () => {
     });
     const result = await sandbox.executeTool('read_file', { path: 'src/deep/file.ts' });
     expect(result).toEqual({ type: 'success', content: 'stub' });
+  });
+
+  it('mockReadFile **/*.ext matches files in root', async () => {
+    const sandbox = createMockTools({
+      read_file: mockReadFile({ '**/*.txt': 'found' }),
+    });
+    const root = await sandbox.executeTool('read_file', { path: 'readme.txt' });
+    expect(root).toEqual({ type: 'success', content: 'found' });
+    const nested = await sandbox.executeTool('read_file', { path: 'docs/guide.txt' });
+    expect(nested).toEqual({ type: 'success', content: 'found' });
   });
 
   it('mockReadFile prefers exact match over glob', async () => {
@@ -145,5 +156,26 @@ describe('MockSandbox', () => {
     const result = await sandbox.executeTool('slow_tool', {});
     expect(result).toEqual({ type: 'success', content: 'done' });
     expect(sandbox.getTrace().totalCalls).toBe(1);
+  });
+});
+
+describe('ProcessSandbox.isAllowedPath', () => {
+  it('**/*.ext matches files in root and nested dirs', () => {
+    const sandbox = new ProcessSandbox({ allow: { fs: ['**/*.txt'] } });
+    expect(sandbox.isAllowedPath('readme.txt')).toBe(true);
+    expect(sandbox.isAllowedPath('docs/guide.txt')).toBe(true);
+    expect(sandbox.isAllowedPath('a/b/c.txt')).toBe(true);
+    expect(sandbox.isAllowedPath('readme.md')).toBe(false);
+  });
+
+  it('single * does not cross directories', () => {
+    const sandbox = new ProcessSandbox({ allow: { fs: ['*.ts'] } });
+    expect(sandbox.isAllowedPath('index.ts')).toBe(true);
+    expect(sandbox.isAllowedPath('src/index.ts')).toBe(false);
+  });
+
+  it('allows all paths when no fs allowlist', () => {
+    const sandbox = new ProcessSandbox({});
+    expect(sandbox.isAllowedPath('anything')).toBe(true);
   });
 });

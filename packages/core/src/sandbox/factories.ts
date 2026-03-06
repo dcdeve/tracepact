@@ -84,8 +84,9 @@ export function passthrough(): MockToolImpl {
 function globToRegex(pattern: string): RegExp {
   const escaped = pattern
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*\*/g, '§DOUBLESTAR§')
+    .replace(/\*\*\//g, '\0GLOBSTAR\0')
+    .replace(/\*\*/g, '.*')
     .replace(/\*/g, '[^/]*')
-    .replace(/§DOUBLESTAR§/g, '.*');
+    .replace(/\0GLOBSTAR\0/g, '(?:.*/)?');
   return new RegExp(`^${escaped}$`);
 }

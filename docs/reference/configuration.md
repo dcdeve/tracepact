@@ -37,7 +37,7 @@ export default defineConfig({
     mistral:    { model: 'mistral-large-latest' },
   },
   cache: {
-    enabled: true,
+    enabled: true,              // set to false to disable caching entirely (no reads or writes)
     dir: '.tracepact/cache',
     ttlSeconds: 86400,
     verifyOnRead: true,

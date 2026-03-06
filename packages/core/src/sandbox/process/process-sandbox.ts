@@ -131,10 +131,13 @@ export class ProcessSandbox {
     const allowList = this.config.allow?.fs;
     if (!allowList || allowList.length === 0) return true;
     return allowList.some((pattern) => {
-      const regex = new RegExp(
-        `^${pattern.replace(/\*\*/g, '.*').replace(/(?<!\.\*)\*/g, '[^/]*')}$`
-      );
-      return regex.test(path);
+      const escaped = pattern
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*\*\//g, '\0GLOBSTAR\0')
+        .replace(/\*\*/g, '.*')
+        .replace(/\*/g, '[^/]*')
+        .replace(/\0GLOBSTAR\0/g, '(?:.*/)?');
+      return new RegExp(`^${escaped}$`).test(path);
     });
   }
 

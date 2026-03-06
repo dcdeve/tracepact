@@ -29,6 +29,7 @@ function buildPermissiveTools(toolNames: readonly string[]): TypedToolDefinition
     schema: {},
     jsonSchema: {
       type: 'object' as const,
+      properties: {} as Record<string, unknown>,
       additionalProperties: true,
     },
   }));

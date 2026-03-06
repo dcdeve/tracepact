@@ -82,6 +82,12 @@ The `skill-completeness` rule checks for fields from the TracePact SKILL.md form
 tracepact audit SKILL.md --fail-on high   # ignore medium/low findings
 ```
 
+## Notes
+
+### Capture with frontmatter tools
+
+`tracepact capture` auto-generates permissive tool schemas from tool names declared in the SKILL.md `tools:` frontmatter. These schemas accept any JSON object — they exist only to tell the LLM that tools are available. If you need strict parameter validation, define explicit schemas in your test files using `defineTools`.
+
 ## Exit Codes
 
 | Code | Meaning |
