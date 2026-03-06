@@ -66,7 +66,12 @@ export async function capture(opts: CaptureOptions): Promise<void> {
   console.log(`Parsed skill: ${skill.frontmatter.name ?? opts.skill}`);
 
   if (opts.dryRun) {
-    generateFromCassette(cassettePath, { skill: opts.skill, prompt: opts.prompt, out, withSemantic });
+    generateFromCassette(cassettePath, {
+      skill: opts.skill,
+      prompt: opts.prompt,
+      out,
+      withSemantic,
+    });
     return;
   }
 
@@ -85,7 +90,9 @@ export async function capture(opts: CaptureOptions): Promise<void> {
     ...(opts.provider ? { provider: opts.provider } : {}),
   });
 
-  console.log(`Done. ${result.trace.totalCalls} tool calls, ${result.usage.inputTokens + result.usage.outputTokens} tokens used.`);
+  console.log(
+    `Done. ${result.trace.totalCalls} tool calls, ${result.usage.inputTokens + result.usage.outputTokens} tokens used.`
+  );
 
   generateFromCassette(cassettePath, { skill: opts.skill, prompt: opts.prompt, out, withSemantic });
 }

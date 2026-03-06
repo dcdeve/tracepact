@@ -22,9 +22,9 @@ vi.mock('../src/commands/capture.js', () => ({
   capture: vi.fn(),
 }));
 
-import { runTests } from '../src/commands/run.js';
-import { doctor } from '../src/commands/doctor.js';
 import { audit } from '../src/commands/audit.js';
+import { doctor } from '../src/commands/doctor.js';
+import { runTests } from '../src/commands/run.js';
 import { createProgram } from '../src/index.js';
 
 function parse(...args: string[]) {
@@ -64,9 +64,8 @@ describe('dispatch', () => {
 
   it('passes vitest args through for run', async () => {
     await parse('run', '--live', '--', '--reporter=verbose');
-    expect(runTests).toHaveBeenCalledWith(
-      expect.objectContaining({ live: true }),
-      ['--reporter=verbose']
-    );
+    expect(runTests).toHaveBeenCalledWith(expect.objectContaining({ live: true }), [
+      '--reporter=verbose',
+    ]);
   });
 });
