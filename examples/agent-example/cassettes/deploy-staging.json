@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "recordedAt": "2026-03-06T12:00:00Z",
+  "metadata": {
+    "skillHash": "example-deploy-agent-hash",
+    "prompt": "deploy to staging",
+    "provider": "openai",
+    "model": "gpt-4o"
+  },
+  "result": {
+    "output": "Deployment to staging complete. All 12 tests passed. Application is live at staging.example.com.",
+    "trace": {
+      "calls": [
+        {
+          "toolName": "read_file",
+          "args": { "path": "config.yaml" },
+          "result": {
+            "type": "success",
+            "content": "app:\n  name: my-app\n  env: staging\n  port: 3000\ndeploy:\n  target: staging.example.com\n  strategy: rolling"
+          },
+          "durationMs": 8,
+          "sequenceIndex": 0,
+          "unknownTool": false
+        },
+        {
+          "toolName": "bash",
+          "args": { "command": "npm test" },
+          "result": { "type": "success", "content": "12 tests passed, 0 failed" },
+          "durationMs": 3200,
+          "sequenceIndex": 1,
+          "unknownTool": false
+        },
+        {
+          "toolName": "bash",
+          "args": { "command": "npm run deploy:staging" },
+          "result": { "type": "success", "content": "Deployed to staging.example.com" },
+          "durationMs": 8500,
+          "sequenceIndex": 2,
+          "unknownTool": false
+        },
+        {
+          "toolName": "write_file",
+          "args": {
+            "path": "deploy.log",
+            "content": "2026-03-06T12:00:00Z — deployed to staging.example.com — 12 tests passed"
+          },
+          "result": { "type": "success", "content": "" },
+          "durationMs": 5,
+          "sequenceIndex": 3,
+          "unknownTool": false
+        }
+      ]
+    },
+    "usage": { "inputTokens": 850, "outputTokens": 120 }
+  }
+}

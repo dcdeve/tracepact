@@ -1,0 +1,46 @@
+{
+  "name": "@tracepact/promptfoo",
+  "version": "0.3.0",
+  "description": "TracePact integration for Promptfoo — tool-trace assertions in your eval config",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dcdeve/tracepact",
+    "directory": "packages/promptfoo"
+  },
+  "dependencies": {
+    "@tracepact/core": "*"
+  },
+  "peerDependencies": {
+    "promptfoo": ">=0.80.0"
+  },
+  "peerDependenciesMeta": {
+    "promptfoo": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json"
+  }
+}

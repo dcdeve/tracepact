@@ -1,0 +1,15 @@
+examples:
+  - input: "Document the authentication module"
+    output: "## Authentication Module\n\n### Overview\nHandles user authentication via JWT tokens.\n\n### API\n- `login(email, password)` — Returns JWT token on success\n- `verify(token)` — Validates token and returns user payload\n- `refresh(token)` — Issues new token before expiry\n\n### Configuration\nSet `JWT_SECRET` environment variable. Token TTL defaults to 1 hour."
+    pass: true
+    justification: "Structured documentation with overview, API reference, and configuration details."
+
+  - input: "Document the authentication module"
+    output: "This module does auth stuff."
+    pass: false
+    justification: "Too vague. No API reference, no structure, no useful information."
+
+  - input: "Document the authentication module"
+    output: "The authentication module uses bcrypt for password hashing and JWT for session tokens. It exposes login and logout endpoints but I'm not sure about the exact parameters."
+    pass: false
+    justification: "Partially informative but lacks structure and admits uncertainty about the API."

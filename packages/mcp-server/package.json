@@ -1,0 +1,32 @@
+{
+  "name": "@tracepact/mcp-server",
+  "version": "0.3.0",
+  "description": "MCP server for TracePact — exposes CLI commands as MCP tools for agentic IDEs",
+  "type": "module",
+  "bin": {
+    "tracepact-mcp-server": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@tracepact/core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  },
+  "keywords": ["ai", "testing", "mcp", "tracepact", "agent"],
+  "author": "dcdeve",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dcdeve/tracepact.git",
+    "directory": "packages/mcp-server"
+  }
+}

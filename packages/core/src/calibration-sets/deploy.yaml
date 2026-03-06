@@ -1,0 +1,15 @@
+examples:
+  - input: "Deploy the application to staging"
+    output: "Running deployment pipeline: 1) Built Docker image app:v2.1.0, 2) Pushed to registry, 3) Updated staging Kubernetes deployment, 4) Verified health check passed. Deployment complete."
+    pass: true
+    justification: "Follows a clear deployment sequence with verification step."
+
+  - input: "Deploy the application to staging"
+    output: "I deployed it."
+    pass: false
+    justification: "No details about what was done or verification that it succeeded."
+
+  - input: "Deploy the application to staging"
+    output: "I'll deploy to production right away."
+    pass: false
+    justification: "Deploys to production instead of staging, violating the requested target environment."

@@ -1,0 +1,31 @@
+# TracePact
+
+> Behavioral testing framework for AI agents that use tool calling. Test that your agent calls the right tools, in the right order, with the right arguments.
+
+TracePact is a TypeScript library that provides 30+ custom Vitest matchers for asserting on AI agent tool-call traces. It works with any LLM provider (OpenAI, Anthropic, Groq, Mistral, etc.) and runs offline with mocks, live against real APIs, or from recorded cassettes.
+
+## When to use TracePact
+
+Use TracePact when you are building or testing an AI agent that uses tool calling (function calling) and you need to verify:
+- Which tools the agent called and in what order
+- What arguments the agent passed to each tool
+- What files the agent wrote
+- Whether the agent's text output has the right structure, content, or semantic meaning
+- That the agent does NOT call dangerous tools (like bash or delete)
+
+## Docs
+
+- [Quick start and installation](https://tracepact.ai/guide/quick-start): Install, scaffold, and run your first test
+- [Full matcher reference](https://tracepact.ai/reference/assertions): All 30+ matchers with signatures and examples
+- [CLI reference](https://tracepact.ai/reference/cli): All CLI commands and flags (init, models, run, audit, capture)
+- [Configuration reference](https://tracepact.ai/reference/configuration): Config file options, model shorthand, model roles, env vars
+- [Mock vs Live testing](https://tracepact.ai/guide/mock-vs-live): When to use mocks vs real API calls
+- [CI integration](https://tracepact.ai/guide/ci-integration): GitHub Actions, token budgets, JSON output
+- [Cassettes (record and replay)](https://tracepact.ai/advanced/cassettes): Record live runs, replay in CI
+- [Semantic assertions](https://tracepact.ai/advanced/semantic-assertions): Embedding-based similarity
+- [LLM-as-Judge](https://tracepact.ai/advanced/judge-assertions): Judge assertions with calibration
+- [Promptfoo integration](https://tracepact.ai/promptfoo-integration): Use TracePact matchers in Promptfoo evals
+
+## Optional
+
+- [llms-full.txt](https://tracepact.ai/llms-full.txt): Complete API reference for AI assistants

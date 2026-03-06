@@ -1,0 +1,48 @@
+description: "Security reviewer — TracePact integration"
+
+providers:
+  - id: "file://./tracepact-provider.js"
+    config:
+      skill: "./SKILL.md"
+      provider: openai
+      model: gpt-4o
+      tools:
+        read_file:
+          type: readFile
+          files:
+            "src/auth.ts": |
+              const query = `SELECT * FROM users WHERE id = '${userId}'`;
+              export function login(userId: string) {
+                return db.execute(query);
+              }
+        write_file:
+          type: deny
+
+prompts:
+  - "Review the file {{file}} for security issues."
+
+tests:
+  - vars:
+      file: "src/auth.ts"
+    assert:
+      # Agent should read the file
+      - type: javascript
+        value: |
+          const { assertCalledTool } = require("@tracepact/promptfoo");
+          return assertCalledTool(output, context, "read_file");
+
+      # Agent should NOT write anything
+      - type: javascript
+        value: |
+          const { assertNotCalledTool } = require("@tracepact/promptfoo");
+          return assertNotCalledTool(output, context, "write_file");
+
+      # Output should mention SQL injection
+      - type: javascript
+        value: |
+          const { assertOutputContains } = require("@tracepact/promptfoo");
+          return assertOutputContains(output, context, "sql injection|parameterized");
+
+      # Standard Promptfoo assertion
+      - type: contains
+        value: "injection"

@@ -1,0 +1,36 @@
+name: Cross-Provider Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Provider to test"
+        required: false
+        default: "both"
+        type: choice
+        options:
+          - both
+          - openai
+          - claude
+
+jobs:
+  cross-provider:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        provider: ${{ github.event.inputs.provider == 'both' && fromJson('["openai", "claude"]') || fromJson(format('["{0}"]', github.event.inputs.provider)) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+      - name: Run cross-provider tests (${{ matrix.provider }})
+        run: npx vitest run --config examples/cross-provider/tracepact.vitest.ts
+        env:
+          TRACEPACT_LIVE: "1"
+          TRACEPACT_PROVIDER: ${{ matrix.provider }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

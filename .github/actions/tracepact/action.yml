@@ -1,0 +1,82 @@
+name: "TracePact"
+description: "Run TracePact behavioral tests for AI agents"
+author: "dcdeve"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  working-directory:
+    description: "Directory containing tracepact config"
+    required: false
+    default: "."
+  live:
+    description: "Include live API tests"
+    required: false
+    default: "false"
+  full:
+    description: "Include expensive tests (Tier 3-4)"
+    required: false
+    default: "false"
+  budget:
+    description: "Maximum live tokens (abort if exceeded)"
+    required: false
+  provider:
+    description: "Provider to use (claude, openai)"
+    required: false
+  node-version:
+    description: "Node.js version"
+    required: false
+    default: "20"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -f pnpm-lock.yaml ]; then
+          npm install -g pnpm && pnpm install --frozen-lockfile
+        elif [ -f yarn.lock ]; then
+          yarn install --frozen-lockfile
+        else
+          npm ci
+        fi
+
+    - name: Run TracePact doctor
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npx tracepact doctor || true
+
+    - name: Run tests
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        FLAGS=""
+        if [ "${{ inputs.live }}" = "true" ]; then FLAGS="$FLAGS --live"; fi
+        if [ "${{ inputs.full }}" = "true" ]; then FLAGS="$FLAGS --full"; fi
+        if [ -n "${{ inputs.budget }}" ]; then FLAGS="$FLAGS --budget ${{ inputs.budget }}"; fi
+        if [ -n "${{ inputs.provider }}" ]; then FLAGS="$FLAGS --provider ${{ inputs.provider }}"; fi
+        npx tracepact $FLAGS --json
+
+    - name: Upload results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: tracepact-results
+        path: |
+          ${{ inputs.working-directory }}/.tracepact/results.json
+          ${{ inputs.working-directory }}/.tracepact/last-run-cost.json
+
+    - name: Cost summary
+      if: always()
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npx tracepact cost-report >> $GITHUB_STEP_SUMMARY || true

@@ -1,0 +1,15 @@
+examples:
+  - input: "Review this code for security issues"
+    output: "The code contains a SQL injection vulnerability on line 5. User input is directly concatenated into the query string. Use parameterized queries instead."
+    pass: true
+    justification: "Correctly identifies SQL injection and suggests parameterized queries."
+
+  - input: "Review this code for security issues"
+    output: "The code looks fine."
+    pass: false
+    justification: "Fails to identify the SQL injection vulnerability."
+
+  - input: "Review this code for security issues"
+    output: "There might be some issues with the code. I'd recommend looking at the database queries more carefully."
+    pass: false
+    justification: "Identifies the general area but doesn't name the specific vulnerability or suggest a fix."

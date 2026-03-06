@@ -1,0 +1,433 @@
+# TracePact — Complete Reference for AI Assistants
+
+> Behavioral testing framework for AI agents that use tool calling.
+> Use this document to understand how to install, configure, and write TracePact tests.
+
+## What is TracePact
+
+TracePact is a TypeScript testing library that verifies AI agent behavior by asserting on tool-call traces. It extends Vitest with 30+ custom matchers organized in tiers by cost and determinism.
+
+Key concepts:
+- **ToolTrace**: A recorded sequence of tool calls an agent made (tool name, arguments, result)
+- **TraceBuilder**: Builds a ToolTrace object for testing
+- **MockSandbox**: Fake tool implementations (no API calls needed)
+- **Cassette**: A recorded live run that can be replayed deterministically
+- **SKILL.md**: A markdown file that describes what an agent does (tools, rules, examples)
+
+## Installation
+
+```bash
+npm install @tracepact/core @tracepact/vitest
+```
+
+## Scaffold a project
+
+```bash
+# Interactive wizard — picks provider, models, generates typed config
+npx tracepact init
+
+# Or scaffold a quick demo (no API key needed)
+npx tracepact init --demo
+```
+
+This creates:
+- `tracepact.config.ts` — configuration (with model shorthand and roles)
+- `tracepact.vitest.ts` — Vitest config with TracePact plugin
+- `demo.tracepact.ts` or `agent.tracepact.ts` — working example test
+
+## Minimal working test
+
+```typescript
+import { describe, expect, test } from 'vitest';
+import { TraceBuilder } from '@tracepact/vitest';
+
+describe('my agent', () => {
+  test('calls read_file before write_file', () => {
+    const trace = new TraceBuilder()
+      .addCall('read_file', { path: 'src/app.ts' }, 'const x = 1;')
+      .addCall('write_file', { path: 'review.md', content: '# Review' })
+      .build();
+
+    expect(trace).toHaveCalledTool('read_file');
+    expect(trace).toNotHaveCalledTool('bash');
+    expect(trace).toHaveCalledToolsInOrder(['read_file', 'write_file']);
+  });
+});
+```
+
+## TraceBuilder API
+
+```typescript
+import { TraceBuilder } from '@tracepact/vitest';
+
+const trace = new TraceBuilder()
+  .addCall(toolName: string, args: Record<string, unknown>, result?: string)
+  .build();  // returns ToolTrace
+```
+
+Each `.addCall()` adds one tool invocation. Chain as many as needed.
+
+## Mock Sandbox
+
+Test without any API calls by providing fake tool implementations:
+
+```typescript
+import {
+  createMockTools,
+  mockReadFile,
+  mockBash,
+  captureWrites,
+  denyAll,
+  passthrough,
+} from '@tracepact/vitest';
+
+const sandbox = createMockTools({
+  read_file: mockReadFile({
+    'src/app.ts': 'export function main() {}',
+    'src/**/*.test.ts': '// test file',     // glob patterns work
+  }),
+  write_file: captureWrites(),                // records what was written
+  bash: mockBash({
+    'npm test': { stdout: 'PASS', exitCode: 0 },
+  }),
+  dangerous_tool: denyAll(),                  // always returns error
+  safe_tool: passthrough(),                   // returns empty success
+});
+
+// Execute a tool
+const result = await sandbox.executeTool('read_file', { path: 'src/app.ts' });
+// { type: 'success', output: 'export function main() {}' }
+
+// Get captured writes
+const writes = sandbox.getWrites();           // [{ path, content }]
+```
+
+## All Matchers — Complete Reference
+
+### Tier 0 — Tool Call Assertions (free, deterministic)
+
+```typescript
+// Check if a tool was called (optionally with specific args)
+expect(trace).toHaveCalledTool('read_file');
+expect(trace).toHaveCalledTool('read_file', { path: 'config.json' });
+
+// Check a tool was NOT called
+expect(trace).toNotHaveCalledTool('bash');
+
+// Check tool call order (subsequence — other calls allowed between)
+expect(trace).toHaveCalledToolsInOrder(['read_file', 'write_file']);
+
+// Check strict order (exact sequence, no other calls between)
+expect(trace).toHaveCalledToolsInStrictOrder(['read_file', 'write_file']);
+
+// Check how many times a tool was called
+expect(trace).toHaveToolCallCount('read_file', 3);
+
+// Check first/last tool called
+expect(trace).toHaveFirstCalledTool('read_file');
+expect(trace).toHaveLastCalledTool('write_file');
+```
+
+### Tier 1 — Structural Assertions (free, deterministic)
+
+```typescript
+// Markdown structure validation
+expect(output).toHaveMarkdownStructure({
+  headings: [{ level: 1 }],           // at least one h1
+  codeBlocks: { min: 1 },             // at least one code block
+});
+
+// JSON Schema validation (Zod schemas)
+import { z } from 'zod';
+expect(output).toMatchJsonSchema(z.object({
+  summary: z.string(),
+  score: z.number().min(0).max(10),
+}));
+
+// Line count bounds
+expect(output).toHaveLineCount({ min: 5, max: 50 });
+
+// Check file was written with specific content
+expect(trace).toHaveFileWritten('output.ts', /export/);
+```
+
+### Tier 2 — Content Assertions (free, deterministic)
+
+```typescript
+// String contains/not contains
+expect(output).toContain('SQL injection');
+expect(output).toNotContain('API_KEY');
+
+// Stemmed mention (matches "vulnerable", "vulnerabilities", etc.)
+expect(output).toMention('vulnerability', { stem: true });
+
+// Must contain ALL of these
+expect(output).toContainAll(['analysis', 'recommendation']);
+
+// Must contain at least ONE of these
+expect(output).toContainAny(['bug', 'issue', 'problem']);
+```
+
+### Tier 3 — Semantic Assertions (embedding-based, ~50 tokens/call)
+
+Require an embedding provider:
+
+```typescript
+import { createEmbeddingProvider } from '@tracepact/core';
+
+const provider = createEmbeddingProvider({ model: 'text-embedding-3-small' });
+
+// Semantic similarity between output and a reference text
+expect(output).toBeSemanticallySimilar(
+  'The code has a SQL injection vulnerability.',
+  { provider, threshold: 0.80 }
+);
+
+// Check semantic overlap with a list of topics
+expect(output).toHaveSemanticOverlap(
+  ['SQL injection', 'input sanitization', 'parameterized queries'],
+  { provider, threshold: 0.75, minTopics: 2 }
+);
+```
+
+### Tier 4 — LLM-as-Judge (~150–450 tokens/call)
+
+Require a driver (LLM client):
+
+```typescript
+import { OpenAIDriver } from '@tracepact/core';
+
+const driver = new OpenAIDriver({ model: 'gpt-4o' });
+
+// Judge whether output meets a criterion
+expect(output).toPassJudge(
+  'Identifies the SQL injection vulnerability and suggests parameterized queries',
+  { driver, calibration: 'code-review' }
+);
+```
+
+Built-in calibration sets: `code-review`, `deploy`, `documentation`.
+
+### RAG Matchers
+
+```typescript
+// Check that a specific document was retrieved
+expect(trace).toHaveRetrievedDocument('search', { id: 'doc-123' });
+
+// Check top result matches a pattern
+expect(trace).toHaveRetrievedTopResult('search', { title: /security/ });
+
+// Check output is grounded in retrieved documents (no hallucination)
+expect(output).toHaveGroundedResponseIn(documents, { provider });
+expect(output).toNotHaveHallucinated(documents, { provider });
+```
+
+### MCP Matchers (Model Context Protocol)
+
+```typescript
+// Check MCP tool calls by server and tool name
+expect(trace).toHaveCalledMcpTool('database', 'query', { sql: 'SELECT 1' });
+expect(trace).toHaveCalledMcpServer('database');
+expect(trace).toHaveCalledMcpToolsInOrder([
+  { server: 'database', tool: 'query' },
+  { server: 'cache', tool: 'set' },
+]);
+```
+
+### Conditional Matchers
+
+```typescript
+import { when, calledTool, calledToolTimes } from '@tracepact/vitest';
+
+// If write_file was called, then read_file must have been called first
+when(calledTool('write_file'))
+  .expect(trace).toHaveCalledTool('read_file');
+
+// If bash was never called, output must explain why
+when(calledToolTimes('bash', 0))
+  .expect(output).toContain('no shell access');
+```
+
+## Configuration
+
+### Config file (tracepact.config.ts)
+
+```typescript
+import { defineConfig } from '@tracepact/core';
+
+// Simple: model shorthand (auto-expands to providers config)
+export default defineConfig({
+  model: 'anthropic/claude-sonnet-4-5-20250929',
+  roles: {
+    judge: 'anthropic/claude-haiku-4-5-20251001',     // cheap model for toPassJudge
+    embedding: 'openai/text-embedding-3-small',        // for semantic assertions
+  },
+});
+
+// Advanced: explicit multi-provider config
+export default defineConfig({
+  providers: {
+    default: 'openai',
+    openai:    { model: 'gpt-4o' },
+    anthropic: { model: 'claude-sonnet-4-5-20250929' },
+    groq:      { model: 'llama-3.3-70b-versatile' },
+  },
+  cache: { enabled: true, ttlSeconds: 86400 },
+  redaction: { redactEnvValues: ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'] },
+});
+```
+
+### Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `TRACEPACT_LIVE` | Set to `1` to run live tests (real API calls) |
+| `TRACEPACT_FULL` | Set to `1` to include expensive tests (Tier 3-4) |
+| `TRACEPACT_PROVIDER` | Provider name: `openai`, `claude`, `groq`, etc. |
+| `TRACEPACT_BUDGET` | Max live tokens (e.g., `50000`) |
+| `TRACEPACT_RECORD` | Set to `1` to record cassettes |
+| `TRACEPACT_REPLAY` | Path to cassette directory for replay |
+| `TRACEPACT_NO_CACHE` | Set to `1` to skip response cache |
+| `TRACEPACT_LOG` | Log level: `debug`, `info`, `warn`, `error` |
+
+## CLI Commands
+
+```bash
+npx tracepact                         # Run all tests (default)
+npx tracepact --live                  # Run against real LLM APIs
+npx tracepact --provider openai       # Choose provider
+npx tracepact --budget 50000          # Abort if live tokens exceed 50,000
+npx tracepact --json                  # JSON output for CI
+npx tracepact --record                # Record cassettes (implies --live)
+npx tracepact --replay ./cassettes    # Replay from cassettes
+npx tracepact --full                  # Include expensive tests (Tier 3-4)
+
+npx tracepact init                    # Interactive setup wizard
+npx tracepact init --demo             # Scaffold demo test suite
+npx tracepact init --skill ./SKILL.md # Generate tests from skill file
+npx tracepact models                  # Browse available models and providers
+npx tracepact models anthropic --verbose  # Show pricing for a provider
+npx tracepact audit                   # Static analysis (no API key needed)
+npx tracepact capture --skill SKILL.md --prompt "deploy staging"  # Execute prompt & generate test
+npx tracepact cache list|clear|verify # Manage response cache
+npx tracepact cost-report             # Cost breakdown from last run
+npx tracepact doctor                  # Environment health check
+```
+
+## Static Audit (free, no API key)
+
+Analyze tool definitions and prompts without any LLM calls:
+
+```typescript
+import { AuditEngine, BUILTIN_RULES } from '@tracepact/core';
+
+const engine = new AuditEngine(BUILTIN_RULES);
+const report = engine.run({
+  tools: myToolDefinitions,
+  systemPrompt: 'You are a helpful assistant...',
+  skill: parsedSkill,
+});
+
+// Built-in rules: toolComboRisk, promptHygiene, skillCompleteness, noOpaqueTools
+report.findings.forEach(f => console.log(f.rule, f.severity, f.message));
+```
+
+## Record & Replay (Cassettes)
+
+Record a live run once, replay it in CI without API calls:
+
+```typescript
+import { runSkill } from '@tracepact/vitest';
+
+// Record
+const result = await runSkill(skill, {
+  mode: 'live',
+  record: './cassettes/deploy.json',
+  driver,
+});
+
+// Replay
+const replayed = await runSkill(skill, {
+  mode: 'replay',
+  cassette: './cassettes/deploy.json',
+});
+
+expect(replayed.trace).toHaveCalledTool('deploy', { env: 'staging' });
+```
+
+## Packages
+
+| Package | What it provides |
+|---------|-----------------|
+| `@tracepact/core` | Matchers, TraceBuilder, MockSandbox, ContainerSandbox, AuditEngine, drivers, cache, redaction |
+| `@tracepact/vitest` | Vitest plugin (auto-registers all matchers), `runSkill()`, `test.live()`, `test.expensive()` |
+| `@tracepact/cli` | CLI commands: `run`, `init`, `models`, `audit`, `capture`, `cache`, `cost-report`, `doctor` |
+| `@tracepact/promptfoo` | Promptfoo integration — use TracePact matchers in eval configs |
+| `@tracepact/mcp-server` | MCP server — exposes TracePact as tools for AI coding assistants (Cursor, Claude Code, Windsurf) |
+
+## Common Patterns
+
+### Test that an agent reads before writing
+
+```typescript
+test('reads config before modifying it', () => {
+  const trace = new TraceBuilder()
+    .addCall('read_file', { path: 'config.json' }, '{"key": "value"}')
+    .addCall('write_file', { path: 'config.json', content: '{"key": "new"}' })
+    .build();
+
+  expect(trace).toHaveCalledToolsInOrder(['read_file', 'write_file']);
+  expect(trace).toHaveFirstCalledTool('read_file');
+});
+```
+
+### Test that an agent never uses a dangerous tool
+
+```typescript
+test('never calls bash or exec', () => {
+  expect(trace).toNotHaveCalledTool('bash');
+  expect(trace).toNotHaveCalledTool('exec');
+  expect(trace).toNotHaveCalledTool('shell');
+});
+```
+
+### Test output structure and content together
+
+```typescript
+test('review has correct format', () => {
+  expect(output).toHaveMarkdownStructure({
+    headings: [{ level: 1 }, { level: 2 }],
+    codeBlocks: { min: 1 },
+  });
+  expect(output).toContainAll(['summary', 'recommendation']);
+  expect(output).toNotContain('API_KEY');
+  expect(output).toHaveLineCount({ min: 10, max: 200 });
+});
+```
+
+### Test with mock sandbox (no API calls)
+
+```typescript
+import { createMockTools, mockReadFile, captureWrites, denyAll } from '@tracepact/vitest';
+
+const sandbox = createMockTools({
+  read_file: mockReadFile({ 'src/app.ts': 'const x = 1;' }),
+  write_file: captureWrites(),
+  bash: denyAll(),
+});
+
+test('sandbox blocks dangerous tools', async () => {
+  const result = await sandbox.executeTool('bash', { command: 'rm -rf /' });
+  expect(result.type).toBe('error');
+});
+```
+
+### CI with token budget
+
+```yaml
+# .github/workflows/test.yml
+- name: Run TracePact
+  run: npx tracepact --live --budget 100000 --json
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
