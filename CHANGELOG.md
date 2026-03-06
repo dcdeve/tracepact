@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+- **BUG-010: Streaming + tool calls** — OpenAI driver now includes `type: "function"` when reconstructing tool call messages from streaming chunks. Previously caused `400 Missing required parameter: 'messages[2].tool_calls[0].type'`.
+- **BUG-011: `tracepact capture` with frontmatter tools** — CLI now generates valid JSON schemas with `properties: {}` for tools declared in SKILL.md frontmatter without explicit schemas.
+- **BUG-012: CacheStore ignores `enabled: false`** — `CacheStore.get()` and `set()` now return early when `enabled` is false. Previously wrote to disk regardless of the setting.
+- **BUG-013: Glob `**/*.ext` doesn't match root files** — `mockReadFile` and `ProcessSandbox` glob patterns like `**/*.txt` now correctly match files in the root directory (e.g. `readme.txt`), not just nested paths.
+
+### Added
 - **Model catalog (models.dev)** — Dynamic model catalog with 3-layer fallback: fetch from models.dev API → local cache (24h TTL) → static snapshot. Covers 11 providers (OpenAI, Anthropic, Groq, DeepSeek, Mistral, xAI, Together, OpenRouter, Cerebras, Fireworks, Perplexity).
 - **`tracepact models` command** — Browse available models and providers. Shows API key status, context windows, tags. `--verbose` for pricing, `--refresh` to update from models.dev.
 - **Interactive `tracepact init`** — Wizard powered by `@clack/prompts`. Guides through provider selection, agent/judge/embedding model selection, and generates typed config. Non-interactive flags (`--demo`, `--pattern`, `--skill`) still work.

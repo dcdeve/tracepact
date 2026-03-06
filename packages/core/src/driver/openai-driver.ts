@@ -284,7 +284,7 @@ export class OpenAIDriver implements AgentDriver {
     let content = '';
     const toolCallMap = new Map<
       number,
-      { id: string; function: { name: string; arguments: string } }
+      { id: string; type: 'function'; function: { name: string; arguments: string } }
     >();
     let inputTokens = 0;
     let outputTokens = 0;
@@ -303,6 +303,7 @@ export class OpenAIDriver implements AgentDriver {
           if (!toolCallMap.has(idx)) {
             toolCallMap.set(idx, {
               id: tc.id ?? '',
+              type: 'function' as const,
               function: { name: tc.function?.name ?? '', arguments: '' },
             });
           }

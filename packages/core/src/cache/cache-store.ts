@@ -24,12 +24,14 @@ export interface CacheSummary {
 }
 
 export class CacheStore {
+  private readonly enabled: boolean;
   private readonly dir: string;
   private readonly ttlSeconds: number;
   private readonly verifyOnRead: boolean;
   private readonly redaction: RedactionPipeline;
 
   constructor(config: CacheConfig) {
+    this.enabled = config.enabled;
     this.dir = config.dir;
     this.ttlSeconds = config.ttlSeconds;
     this.verifyOnRead = config.verifyOnRead;
@@ -41,6 +43,7 @@ export class CacheStore {
   }
 
   async get(manifest: RunManifest): Promise<CacheEntry | null> {
+    if (!this.enabled) return null;
     const hash = manifestHash(manifest);
     const path = this.filePath(hash);
 
@@ -81,6 +84,7 @@ export class CacheStore {
   }
 
   async set(manifest: RunManifest, result: unknown): Promise<void> {
+    if (!this.enabled) return;
     const hash = manifestHash(manifest);
     const redactedResult = this.redaction.redactObject(result);
     const entry: CacheEntry = {

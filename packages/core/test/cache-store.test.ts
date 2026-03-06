@@ -181,4 +181,22 @@ describe('CacheStore', () => {
       expect(['first', 'second']).toContain((entry.result as any).output);
     }
   });
+
+  it('does not write when enabled is false', async () => {
+    const disabledConfig = { ...config, enabled: false };
+    const store = new CacheStore(disabledConfig);
+    await store.set(baseManifest, { output: 'should not persist' });
+    // Re-check with an enabled store — should find nothing
+    const enabledStore = new CacheStore(config);
+    const entry = await enabledStore.get(baseManifest);
+    expect(entry).toBeNull();
+  });
+
+  it('returns null on get when enabled is false', async () => {
+    const store = new CacheStore(config);
+    await store.set(baseManifest, { output: 'stored' });
+    const disabledStore = new CacheStore({ ...config, enabled: false });
+    const entry = await disabledStore.get(baseManifest);
+    expect(entry).toBeNull();
+  });
 });
