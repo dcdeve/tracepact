@@ -63,6 +63,25 @@ tracepact capture \
   --dry-run
 ```
 
+## Audit Rules
+
+The `audit` command runs four built-in rules against SKILL.md files:
+
+| Rule name | Export name | What it checks |
+|-----------|------------|----------------|
+| `tool-combo-risk` | `toolComboRisk` | Dangerous tool combinations (e.g. bash + write_file) |
+| `prompt-hygiene` | `promptHygiene` | Prompt injection patterns and unsafe instructions |
+| `skill-completeness` | `skillCompleteness` | Recommended frontmatter fields (name, description, triggers, tools, excludes) |
+| `no-opaque-tools` | `noOpaqueTools` | Tools declared without clear descriptions |
+
+> **Naming convention:** Rule names use `kebab-case` in reports and JSON output. The corresponding TypeScript exports use `camelCase`. When searching for a finding from a report in code, convert kebab-case to camelCase (e.g. `tool-combo-risk` -> `toolComboRisk`).
+
+The `skill-completeness` rule checks for fields from the TracePact SKILL.md format. Skills from other ecosystems (like skills.sh) may not have `triggers`, `tools`, or `excludes` — these findings can be safely ignored or suppressed with `--fail-on` to only fail on higher severity issues:
+
+```bash
+tracepact audit SKILL.md --fail-on high   # ignore medium/low findings
+```
+
 ## Exit Codes
 
 | Code | Meaning |

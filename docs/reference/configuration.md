@@ -51,6 +51,18 @@ export default defineConfig({
 });
 ```
 
+### Mock-only mode
+
+If you only need mock tests (no live API calls), you can omit `model` and `providers` entirely:
+
+```typescript
+import { defineConfig } from '@tracepact/core';
+
+export default defineConfig({});
+```
+
+This is useful when all your tests use `createMockTools` and don't call any LLM API. The config file itself is also optional for mock-only tests — you can use `@tracepact/core` directly with vitest.
+
 ### Provider config options
 
 ```typescript
@@ -65,6 +77,41 @@ interface ProviderConfig {
     maxDelayMs?: number;
   };
 }
+```
+
+### Providers and presets
+
+TracePact supports any OpenAI-compatible provider. **OpenAI** and **Anthropic** use their native SDKs and don't need a preset — just set the API key env var.
+
+All other providers use the OpenAI-compatible driver with a preset `baseURL`:
+
+| Provider | Preset `baseURL` | Env var |
+|----------|-----------------|---------|
+| `openai` | *(native SDK)* | `OPENAI_API_KEY` |
+| `anthropic` | *(native SDK)* | `ANTHROPIC_API_KEY` |
+| `groq` | `https://api.groq.com/openai/v1` | `GROQ_API_KEY` |
+| `deepseek` | `https://api.deepseek.com` | `DEEPSEEK_API_KEY` |
+| `together` | `https://api.together.xyz/v1` | `TOGETHER_API_KEY` |
+| `mistral` | `https://api.mistral.ai/v1` | `MISTRAL_API_KEY` |
+| `openrouter` | `https://openrouter.ai/api/v1` | `OPENROUTER_API_KEY` |
+| `xai` | `https://api.x.ai/v1` | `XAI_API_KEY` |
+| `cerebras` | `https://api.cerebras.ai/v1` | `CEREBRAS_API_KEY` |
+| `fireworks` | `https://api.fireworks.ai/inference/v1` | `FIREWORKS_API_KEY` |
+| `perplexity` | `https://api.perplexity.ai` | `PERPLEXITY_API_KEY` |
+
+To use a provider not in this list, set `baseURL` explicitly:
+
+```typescript
+export default defineConfig({
+  providers: {
+    default: 'custom',
+    custom: {
+      model: 'my-model',
+      baseURL: 'https://my-provider.example.com/v1',
+      apiKey: process.env.MY_API_KEY,
+    },
+  },
+});
 ```
 
 ## Environment Variables

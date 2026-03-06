@@ -10,11 +10,13 @@ npm install -D @tracepact/core @tracepact/vitest
 
 ```bash
 # Interactive wizard — picks provider, models, generates config
-npx tracepact init
+npx @tracepact/cli init
 
 # Or scaffold a quick demo (no API key needed)
-npx tracepact init --demo
+npx @tracepact/cli init --demo
 ```
+
+The `--demo` flag generates a complete project: `package.json`, `tsconfig.json`, `tracepact.config.ts`, `tracepact.vitest.ts`, and a demo test file. Run `npm install && npm test` to see it work.
 
 The interactive wizard guides you through:
 1. Project type (SKILL.md agent, system prompt, pattern template, demo)
@@ -45,15 +47,17 @@ test('agent reads config before deploying', async () => {
 ## Run
 
 ```bash
-npx tracepact
+npx @tracepact/cli
 ```
+
+> **Tip:** If you have `@tracepact/cli` installed locally (via `npm install -D @tracepact/cli`), you can use `npx tracepact` directly.
 
 ## Browse available models
 
 ```bash
-npx tracepact models                   # all providers
-npx tracepact models anthropic         # filter by provider
-npx tracepact models --verbose         # show pricing
+npx @tracepact/cli models                   # all providers
+npx @tracepact/cli models anthropic         # filter by provider
+npx @tracepact/cli models --verbose         # show pricing
 ```
 
 ## Next Steps

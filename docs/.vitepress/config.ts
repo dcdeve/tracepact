@@ -17,6 +17,7 @@ export default defineConfig({
           { text: 'IDE Setup (MCP)', link: '/guide/ide-setup' },
           { text: 'Mock vs Live', link: '/guide/mock-vs-live' },
           { text: 'CI Integration', link: '/guide/ci-integration' },
+          { text: 'skills.sh Integration', link: '/guide/skills-sh' },
         ],
       },
       {

@@ -16,9 +16,15 @@ export interface SkillFrontmatter {
 }
 
 export const KNOWN_FRONTMATTER_FIELDS = new Set([
+  // TracePact native
   'name',
   'description',
   'triggers',
   'excludes',
   'tools',
+  // skills.sh ecosystem
+  'version',
+  'license',
+  'metadata',
+  'user-invocable',
 ]);
