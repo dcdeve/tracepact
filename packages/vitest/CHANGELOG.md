@@ -1,5 +1,12 @@
 # @tracepact/vitest
 
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies [[`9172f0c`](https://github.com/dcdeve/tracepact/commit/9172f0cff1394ac6062a017cd1bfa3b34749d93c)]:
+  - @tracepact/core@0.3.3
+
 ## 0.3.2
 
 ### Patch Changes

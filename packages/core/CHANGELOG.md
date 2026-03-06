@@ -1,5 +1,18 @@
 # @tracepact/core
 
+## 0.3.3
+
+### Patch Changes
+
+- [`9172f0c`](https://github.com/dcdeve/tracepact/commit/9172f0cff1394ac6062a017cd1bfa3b34749d93c) Thanks [@dcdeve](https://github.com/dcdeve)! - docs: complete documentation for providers, audit rules, and skills.sh integration
+
+  - Document mock-only mode (defineConfig without provider)
+  - Add providers/presets table with OpenAI/Anthropic native SDK note
+  - Document audit rule naming convention (kebab-case vs camelCase)
+  - Add skills.sh fields to KNOWN_FRONTMATTER_FIELDS (no more warnings for version, license, metadata, user-invocable)
+  - Add skills.sh integration guide
+  - Fix npx tracepact references to npx @tracepact/cli in quick-start
+
 ## 0.3.2
 
 ### Patch Changes
