@@ -19,11 +19,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dcdeve/tracepact",
+    "url": "https://github.com/dcdeve/tracepact.git",
     "directory": "packages/vitest"
   },
   "dependencies": {
-    "@tracepact/core": "*"
+    "@tracepact/core": "0.3.0"
   },
   "peerDependencies": {
     "vitest": ">=2.0.0"

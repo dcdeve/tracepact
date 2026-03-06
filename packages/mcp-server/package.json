@@ -6,6 +6,10 @@
   "bin": {
     "tracepact-mcp-server": "./dist/index.js"
   },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -13,7 +17,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@tracepact/core": "*"
+    "@tracepact/core": "0.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
