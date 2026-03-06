@@ -124,7 +124,9 @@ export async function refreshModels(): Promise<ProviderInfo[]> {
     const providers = transformModelsDevResponse(data as Record<string, any>);
     writeCache(providers);
     _cached = providers;
-    log.info(`Models cache refreshed: ${providers.reduce((s, p) => s + p.models.length, 0)} models from ${providers.length} providers`);
+    log.info(
+      `Models cache refreshed: ${providers.reduce((s, p) => s + p.models.length, 0)} models from ${providers.length} providers`
+    );
     return providers;
   } catch (err: any) {
     log.warn(`Failed to fetch models.dev: ${err.message}`);

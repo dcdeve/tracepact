@@ -8,7 +8,10 @@ export function defineConfig(input: Partial<TracepactConfig>): TracepactConfig {
   if (!providers && input.model) {
     const [providerName, modelId] = input.model.split('/');
     if (!providerName || !modelId) {
-      throw new ConfigError('model', 'model must be in "provider/model" format (e.g. "anthropic/claude-sonnet-4-5").');
+      throw new ConfigError(
+        'model',
+        'model must be in "provider/model" format (e.g. "anthropic/claude-sonnet-4-5").'
+      );
     }
     providers = {
       default: providerName,
@@ -17,7 +20,10 @@ export function defineConfig(input: Partial<TracepactConfig>): TracepactConfig {
   }
 
   if (!providers?.default) {
-    throw new ConfigError('providers.default', 'Must specify a default provider name or use the model shorthand.');
+    throw new ConfigError(
+      'providers.default',
+      'Must specify a default provider name or use the model shorthand.'
+    );
   }
 
   const defaultProviderName = providers.default;
