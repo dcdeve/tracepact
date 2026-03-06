@@ -19,26 +19,29 @@ export function defineConfig(input: Partial<TracepactConfig>): TracepactConfig {
     };
   }
 
-  if (!providers?.default) {
+  if (providers && !providers.default) {
     throw new ConfigError(
       'providers.default',
       'Must specify a default provider name or use the model shorthand.'
     );
   }
 
-  const defaultProviderName = providers.default;
-  if (typeof defaultProviderName === 'string' && !(defaultProviderName in providers)) {
-    throw new ConfigError(
-      `providers.${defaultProviderName}`,
-      `Default provider "${defaultProviderName}" is referenced but not configured.`
-    );
+  if (providers?.default) {
+    const defaultProviderName = providers.default;
+    if (typeof defaultProviderName === 'string' && !(defaultProviderName in providers)) {
+      throw new ConfigError(
+        `providers.${defaultProviderName}`,
+        `Default provider "${defaultProviderName}" is referenced but not configured.`
+      );
+    }
   }
 
   const config: TracepactConfig = {
-    providers,
     cache: { ...DEFAULT_CACHE, ...input.cache },
     redaction: { ...DEFAULT_REDACTION, ...input.redaction },
   };
+
+  if (providers) config.providers = providers;
 
   if (input.skill !== undefined) config.skill = input.skill;
   if (input.model !== undefined) config.model = input.model;

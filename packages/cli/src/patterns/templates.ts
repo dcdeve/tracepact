@@ -1,3 +1,31 @@
+export const PACKAGE_JSON_TEMPLATE = `{
+  "name": "tracepact-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --config tracepact.vitest.ts"
+  },
+  "devDependencies": {
+    "@tracepact/core": "latest",
+    "@tracepact/vitest": "latest",
+    "vitest": "latest",
+    "typescript": "latest"
+  }
+}
+`;
+
+export const TSCONFIG_TEMPLATE = `{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true
+  }
+}
+`;
+
 export const VITEST_CONFIG_TEMPLATE = `import { defineConfig } from 'vitest/config';
 import { tracepactPlugin } from '@tracepact/vitest';
 

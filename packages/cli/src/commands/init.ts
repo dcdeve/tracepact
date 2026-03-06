@@ -12,8 +12,10 @@ import {
   DATA_TRANSFORMER_TEST_TEMPLATE,
   DEMO_CONFIG_TEMPLATE,
   DEMO_TEST_TEMPLATE,
+  PACKAGE_JSON_TEMPLATE,
   SYSTEM_PROMPT_CONFIG_TEMPLATE,
   SYSTEM_PROMPT_TEST_TEMPLATE,
+  TSCONFIG_TEMPLATE,
   VITEST_CONFIG_TEMPLATE,
 } from '../patterns/templates.js';
 
@@ -344,11 +346,20 @@ function initDemo(force: boolean): void {
     'tracepact.vitest.ts': VITEST_CONFIG_TEMPLATE,
     'demo.tracepact.ts': DEMO_TEST_TEMPLATE,
   };
+
+  if (!existsSync('package.json')) {
+    files['package.json'] = PACKAGE_JSON_TEMPLATE;
+  }
+  if (!existsSync('tsconfig.json')) {
+    files['tsconfig.json'] = TSCONFIG_TEMPLATE;
+  }
+
   writeFiles(files, force);
   console.log(`Created demo suite.
 
 Next steps:
-  npx tracepact          Run tests (all should pass)
+  npm install            Install dependencies
+  npx vitest run --config tracepact.vitest.ts   Run tests (all should pass)
   Edit demo.tracepact.ts Adapt to your agent`);
 }
 
@@ -382,7 +393,8 @@ function initPattern(pattern: string, force: boolean): void {
   if (!entry) {
     const available = Object.keys(PATTERN_TEMPLATES).join(', ');
     console.error(`Unknown pattern "${pattern}". Available: ${available}`);
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
 
   const files: Record<string, string> = {

@@ -43,12 +43,12 @@ export async function cache(subcommand: string, opts: ClearOptions): Promise<voi
       console.log(
         `Total: ${report.total}  Valid: ${report.valid}  Expired: ${report.expired}  Corrupted: ${report.corrupted}`
       );
-      if (report.corrupted > 0) process.exit(1);
+      if (report.corrupted > 0) process.exitCode = 1;
       break;
     }
     default:
       console.error(`Unknown cache command: "${subcommand}". Use: list, clear, verify`);
-      process.exit(2);
+      process.exitCode = 2;
   }
 }
 

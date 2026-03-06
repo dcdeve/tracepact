@@ -23,7 +23,8 @@ export async function models(providerId: string | undefined, opts: ModelsOptions
     if (!provider) {
       console.error(`Unknown provider: "${providerId}".`);
       console.log(`Available: ${providers.map((p) => p.id).join(', ')}`);
-      process.exit(2);
+      process.exitCode = 2;
+      return;
     }
     printProvider(provider.id, provider.name, provider.models, provider.hasKey, opts.verbose);
     return;

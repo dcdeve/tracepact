@@ -13,7 +13,7 @@ export interface TracepactConfig {
   model?: string;
   /** Model assignments per role. Auto-selected from model if omitted. */
   roles?: ModelRoles;
-  providers: {
+  providers?: {
     default: string;
     [name: string]: ProviderConfig | string;
   };
