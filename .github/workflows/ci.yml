@@ -20,7 +20,7 @@ jobs:
         run: npm run build
       - name: Typecheck
         run: npm run typecheck
-      - name: Lint
-        run: npm run lint
+      - name: Lint (autofix + check)
+        run: npx biome check --fix --unsafe . && npm run lint
       - name: Test
         run: npm run test
