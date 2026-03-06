@@ -1,5 +1,14 @@
 # @tracepact/cli
 
+## 0.3.4
+
+### Patch Changes
+
+- [`7a64b4e`](https://github.com/dcdeve/tracepact/commit/7a64b4e1019e87713eef13056c259c83dbabe7a7) Thanks [@dcdeve](https://github.com/dcdeve)! - fix: read CLI version from package.json instead of hardcoded string
+
+- Updated dependencies []:
+  - @tracepact/core@0.3.4
+
 ## 0.3.3
 
 ### Patch Changes
