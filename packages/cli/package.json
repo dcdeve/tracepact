@@ -1,6 +1,6 @@
 {
   "name": "@tracepact/cli",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "description": "CLI for TracePact — interactive setup, model catalog, test runner",
   "type": "module",
   "bin": {
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^1.1.0",
-    "@tracepact/core": "0.3.5",
+    "@tracepact/core": "0.4.0",
     "commander": "^14.0.3"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@tracepact/core",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "description": "Core library for TracePact — matchers, trace model, parser, sandbox, drivers",
   "type": "module",
   "exports": {

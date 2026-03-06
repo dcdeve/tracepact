@@ -1,5 +1,22 @@
 # @tracepact/cli
 
+## 0.4.0
+
+### Minor Changes
+
+- fix: streaming tool calls, capture schemas, cache enabled, glob matching
+
+  - BUG-010: OpenAI streaming now includes `type: "function"` in tool call messages
+  - BUG-011: `tracepact capture` generates valid schemas for frontmatter tools
+  - BUG-012: CacheStore respects `enabled: false` (no reads or writes)
+  - BUG-013: Glob `**/*.ext` matches files in root directory
+  - Added documentation: gotchas section in llms-full.txt, glob patterns guide, capture notes
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @tracepact/core@0.4.0
+
 ## 0.3.5
 
 ### Patch Changes
