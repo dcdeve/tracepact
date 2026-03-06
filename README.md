@@ -3,8 +3,8 @@
   <p align="center">Behavioral testing framework for AI agents</p>
   <p align="center">
     <a href="https://www.npmjs.com/package/@tracepact/core"><img src="https://img.shields.io/npm/v/@tracepact/core.svg" alt="npm version" /></a>
-    <a href="https://github.com/dcdeve/tracepact/actions"><img src="https://img.shields.io/github/actions/workflow/status/dcdeve/tracepact/release.yml?branch=main" alt="CI" /></a>
-    <a href="https://github.com/dcdeve/tracepact/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@tracepact/core.svg" alt="license" /></a>
+    <a href="https://github.com/dcdeve/tracepact/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/dcdeve/tracepact/ci.yml?branch=main" alt="CI" /></a>
+    <a href="https://github.com/dcdeve/tracepact/blob/main/LICENSE"><img src="https://img.shields.io/github/license/dcdeve/tracepact" alt="license" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/@tracepact/core.svg" alt="node version" /></a>
   </p>
 </p>
