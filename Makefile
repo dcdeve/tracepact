@@ -1,5 +1,5 @@
 .PHONY: all build test typecheck lint lint-fix format clean \
-       docs docs-dev audit doctor release version ci watch help
+       docs docs-dev audit doctor release version changeset ci watch help
 
 all: lint typecheck build test ## Lint, typecheck, build, and test everything
 
@@ -65,7 +65,10 @@ docs-dev: ## Start VitePress dev server
 	npx vitepress dev docs
 
 # ── Release ──────────────────────────────────────────────────
-version: ## Bump versions via changesets
+changeset: ## Add a changeset for the current changes
+	npx changeset
+
+version: ## Apply changesets → bump versions + changelogs
 	npm run version
 
 release: build ## Build and publish via changesets
