@@ -222,9 +222,19 @@ test: add edge cases for MCP matchers
 chore: update tsup to v9
 ```
 
+### Branch Flow
+
+```
+feature/my-change  →  PR to develop  →  PR to main  →  release
+```
+
+- **`main`** — stable, releases are cut from here. Protected: requires PR + CI + review.
+- **`develop`** — integration branch. Protected: requires PR + CI + review.
+- **Feature branches** — branch from `develop`, PR back to `develop`.
+
 ### Pull Request Process
 
-1. **Create a branch** from `main`
+1. **Create a branch** from `develop`
 2. **Make your changes** with tests
 3. **Add a changeset** describing your changes:
    ```bash
@@ -237,13 +247,11 @@ chore: update tsup to v9
 
 4. **Ensure CI passes:**
    ```bash
-   npm run build
-   npm test
-   npm run typecheck
-   npm run lint
+   make ci   # or: npm run lint && npm run typecheck && npm run build && npm test
    ```
 
-5. **Open a PR** against `main`
+5. **Open a PR** against `develop`
+6. Once `develop` is stable, a maintainer opens a PR from `develop` → `main` to release
 
 ### Changesets
 
