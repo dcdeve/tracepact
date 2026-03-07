@@ -18,7 +18,7 @@
 | Matcher | Description |
 |---------|-------------|
 | `toHaveMarkdownStructure(config)` | Output has expected markdown headings |
-| `toMatchJsonSchema(schema)` | Output matches JSON schema |
+| `toMatchJsonSchema(schema)` | Output matches JSON schema (accepts Zod schemas or any object with `.safeParse()`) |
 | `toHaveLineCount(n)` | Output has expected line count |
 | `toHaveFileWritten(path)` | Agent wrote to this file path |
 
@@ -28,7 +28,7 @@
 |---------|-------------|
 | `toContain(text)` | Output contains text |
 | `toNotContain(text)` | Output does not contain text |
-| `toMention(term)` | Output mentions term (stemmed) |
+| `toMention(term, opts?)` | Output mentions term (exact match by default; pass `{ stem: true }` for stemmed matching) |
 | `toContainAll([...])` | Output contains all terms |
 | `toContainAny([...])` | Output contains at least one term |
 
@@ -50,10 +50,31 @@ Requires `OPENAI_API_KEY` for embedding calls.
 
 ## Conditional Matchers
 
+Guard assertions so they only run when a condition is met:
+
 ```typescript
-import { when, calledTool } from '@tracepact/core';
+import { when, calledTool, calledToolWith, calledToolAfter, calledToolTimes } from '@tracepact/core';
 
 // Only assert if the tool was actually called
 when(result.trace, calledTool('bash'),
   toHaveCalledTool(result, 'write_file'));
+
+// Only assert if tool was called with specific args
+when(result.trace, calledToolWith('read_file', { path: 'config.json' }),
+  toHaveCalledTool(result, 'write_file'));
+
+// Only assert if tools were called in order
+when(result.trace, calledToolAfter('read_file', 'write_file'),
+  toHaveCalledTool(result, 'bash'));
+
+// Only assert if tool was called exactly N times
+when(result.trace, calledToolTimes('bash', 2),
+  toHaveCalledTool(result, 'write_file'));
 ```
+
+| Condition | Description |
+|-----------|-------------|
+| `calledTool(name)` | True if tool was called at least once |
+| `calledToolWith(name, args)` | True if tool was called with matching args |
+| `calledToolAfter(first, second)` | True if `second` was called after `first` |
+| `calledToolTimes(name, n)` | True if tool was called exactly `n` times |

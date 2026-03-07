@@ -44,7 +44,11 @@ const tools = defineTools({
 | **Package** | `@tracepact/vitest` | `@tracepact/core` |
 | **Requires** | `TRACEPACT_LIVE=1` or `replay` path | Always executes live |
 | **Use case** | Vitest tests with tier annotations | Direct live calls |
-| **Without live/replay** | Warns and returns empty mock result | Calls the LLM API |
+| **Without live/replay** | Warns and returns empty mock result (see below) | Calls the LLM API |
+
+> **What happens when `runSkill()` runs without `TRACEPACT_LIVE=1` and no `replay` path?**
+>
+> It prints a `console.warn` and returns an empty result: `output: ''`, empty trace from the sandbox, zero tokens, and zero duration. This is intentional — mock-only tests should use sandbox directly, not `runSkill()`. If you need to call the LLM, either set `TRACEPACT_LIVE=1` or use `executePrompt()` from `@tracepact/core`.
 
 ```typescript
 // In vitest tests — respects TRACEPACT_LIVE

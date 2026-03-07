@@ -1,4 +1,5 @@
 import type { WriteCapture } from '../../sandbox/types.js';
+import type { ToolTrace } from '../../trace/types.js';
 import type { MatcherResult } from '../types.js';
 import { extractJson } from '../utils/json-extractor.js';
 import { tokenizeMarkdown } from '../utils/markdown-tokenizer.js';
@@ -86,7 +87,13 @@ export function toHaveMarkdownStructure(output: string, spec: MarkdownSpec): Mat
 }
 
 interface JsonSchemaSpec {
-  parse: (data: unknown) => {
+  /** Zod-compatible: schema.safeParse(data) → { success, error? } */
+  safeParse?: (data: unknown) => {
+    success: boolean;
+    error?: { issues?: Array<{ path?: unknown[]; message?: string }> };
+  };
+  /** Legacy: schema.parse(data) → { success, error? } */
+  parse?: (data: unknown) => {
     success: boolean;
     error?: { issues?: Array<{ path?: unknown[]; message?: string }> };
   };
@@ -112,7 +119,17 @@ export function toMatchJsonSchema(output: string, schema: JsonSchemaSpec): Match
     };
   }
 
-  const result = schema.parse(extracted.json);
+  // Prefer safeParse (Zod standard), fall back to parse
+  const validate = schema.safeParse?.bind(schema) ?? schema.parse?.bind(schema);
+  if (!validate) {
+    return {
+      pass: false,
+      message: 'Schema must have a safeParse() or parse() method (e.g. a Zod schema).',
+      tier: 1,
+      diagnostic: { expected: 'schema with safeParse/parse', received: typeof schema, tokens: 0 },
+    };
+  }
+  const result = validate(extracted.json);
   if (!result.success) {
     const issues = result.error?.issues ?? [];
     const details = issues.map((i) => `${i.path?.join('.') ?? '(root)'}: ${i.message}`).join('; ');
@@ -197,10 +214,18 @@ export function toHaveLineCount(output: string, spec: LineCountSpec): MatcherRes
 }
 
 export function toHaveFileWritten(
-  writes: ReadonlyArray<WriteCapture>,
+  writesOrTrace: ReadonlyArray<WriteCapture> | ToolTrace,
   path: string,
   contentMatcher?: string | RegExp
 ): MatcherResult {
+  // Accept both WriteCapture[] and ToolTrace — extract writes from trace if needed
+  const writes: ReadonlyArray<WriteCapture> = Array.isArray(writesOrTrace)
+    ? writesOrTrace
+    : writesOrTrace.calls
+        .filter(
+          (c) => c.toolName === 'write_file' && c.result.type === 'success' && typeof c.args.path === 'string'
+        )
+        .map((c) => ({ path: c.args.path as string, content: String(c.args.content ?? '') }));
   const found = writes.find((w) => w.path === path);
 
   if (!found) {

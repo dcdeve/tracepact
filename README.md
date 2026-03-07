@@ -44,7 +44,7 @@ No API calls. No tokens. Deterministic.
 ## Install
 
 ```
-npm install @tracepact/core @tracepact/vitest
+npm install @tracepact/core @tracepact/vitest @tracepact/cli
 
 npx tracepact init          # interactive setup
 npx tracepact init --demo   # scaffold a demo test suite
@@ -220,17 +220,18 @@ Record a live run once, replay it deterministically in CI without API calls:
 ```ts
 import { runSkill } from '@tracepact/vitest';
 
-// Record
+// Record (requires TRACEPACT_LIVE=1)
 const result = await runSkill(skill, {
-  mode: 'live',
+  prompt: 'deploy to staging',
   record: './cassettes/deploy.json',
-  driver,
+  sandbox,
+  tools,
 });
 
-// Replay
+// Replay (no API key needed)
 const replayed = await runSkill(skill, {
-  mode: 'replay',
-  cassette: './cassettes/deploy.json',
+  prompt: 'deploy to staging',
+  replay: './cassettes/deploy.json',
 });
 
 expect(replayed.trace).toHaveCalledTool('deploy', { env: 'staging' });
