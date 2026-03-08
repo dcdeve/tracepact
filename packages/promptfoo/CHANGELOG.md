@@ -1,5 +1,12 @@
 # @tracepact/promptfoo
 
+## 0.5.0
+
+### Patch Changes
+
+- Updated dependencies [[`cab259c`](https://github.com/dcdeve/tracepact/commit/cab259c97cdd97d1d1712743ae8bcddd23a79c3b), [`2cb89c0`](https://github.com/dcdeve/tracepact/commit/2cb89c0c8d0313cabecd72541a210d79f612418b)]:
+  - @tracepact/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

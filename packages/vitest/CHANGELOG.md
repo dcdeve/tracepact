@@ -1,5 +1,20 @@
 # @tracepact/vitest
 
+## 0.5.0
+
+### Patch Changes
+
+- [#8](https://github.com/dcdeve/tracepact/pull/8) [`2cb89c0`](https://github.com/dcdeve/tracepact/commit/2cb89c0c8d0313cabecd72541a210d79f612418b) Thanks [@dcdeve](https://github.com/dcdeve)! - fix: QA findings — TraceBuilder chaining, matcher compatibility, docs
+
+  - `TraceBuilder.addCall()` now returns `this` for method chaining, plus a shorthand overload `addCall(name, args, result)`
+  - `toHaveFileWritten()` accepts both `WriteCapture[]` and `ToolTrace` (extracts writes from trace automatically)
+  - `toMatchJsonSchema()` uses `safeParse` for Zod compatibility, with `parse` fallback
+  - Fixed README record/replay example (wrong params) and install command (missing `@tracepact/cli`)
+  - Documented conditional matchers, `toMention` stem option, and `runSkill` mock-mode behavior
+
+- Updated dependencies [[`cab259c`](https://github.com/dcdeve/tracepact/commit/cab259c97cdd97d1d1712743ae8bcddd23a79c3b), [`2cb89c0`](https://github.com/dcdeve/tracepact/commit/2cb89c0c8d0313cabecd72541a210d79f612418b)]:
+  - @tracepact/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes

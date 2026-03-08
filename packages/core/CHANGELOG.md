@@ -1,5 +1,26 @@
 # @tracepact/core
 
+## 0.5.0
+
+### Minor Changes
+
+- [#19](https://github.com/dcdeve/tracepact/pull/19) [`cab259c`](https://github.com/dcdeve/tracepact/commit/cab259c97cdd97d1d1712743ae8bcddd23a79c3b) Thanks [@dcdeve](https://github.com/dcdeve)! - feat: diff policy and severity levels for CI gating
+
+  - `DiffPolicy`: `ignoreKeys` and `ignoreTools` to filter noisy args and tools from comparison
+  - `DiffSeverity`: `none | warn | block` based on change type (arg change vs structural)
+  - CLI: `--fail-on warn|block`, `--ignore-keys`, `--ignore-tools` flags
+  - MCP server: `ignore_keys`/`ignore_tools` params on `tracepact_diff`
+
+### Patch Changes
+
+- [#8](https://github.com/dcdeve/tracepact/pull/8) [`2cb89c0`](https://github.com/dcdeve/tracepact/commit/2cb89c0c8d0313cabecd72541a210d79f612418b) Thanks [@dcdeve](https://github.com/dcdeve)! - fix: QA findings — TraceBuilder chaining, matcher compatibility, docs
+
+  - `TraceBuilder.addCall()` now returns `this` for method chaining, plus a shorthand overload `addCall(name, args, result)`
+  - `toHaveFileWritten()` accepts both `WriteCapture[]` and `ToolTrace` (extracts writes from trace automatically)
+  - `toMatchJsonSchema()` uses `safeParse` for Zod compatibility, with `parse` fallback
+  - Fixed README record/replay example (wrong params) and install command (missing `@tracepact/cli`)
+  - Documented conditional matchers, `toMention` stem option, and `runSkill` mock-mode behavior
+
 ## 0.4.0
 
 ### Minor Changes
