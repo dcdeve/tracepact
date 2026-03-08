@@ -16,8 +16,10 @@ jobs:
           node-version: "22"
           cache: "npm"
       - run: npm ci
-      - name: Build
-        run: npm run build
+      - name: Build core (others depend on its .d.ts)
+        run: npm run build -w packages/core
+      - name: Build remaining packages
+        run: npm run build -w packages/vitest -w packages/cli -w packages/promptfoo -w packages/mcp-server
       - name: Typecheck
         run: npm run typecheck
       - name: Lint (autofix + check)

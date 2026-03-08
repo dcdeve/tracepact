@@ -219,13 +219,20 @@ export function toHaveFileWritten(
   contentMatcher?: string | RegExp
 ): MatcherResult {
   // Accept both WriteCapture[] and ToolTrace — extract writes from trace if needed
-  const writes: ReadonlyArray<WriteCapture> = Array.isArray(writesOrTrace)
-    ? writesOrTrace
-    : writesOrTrace.calls
+  const isTrace = !Array.isArray(writesOrTrace) && 'calls' in writesOrTrace;
+  const writes: ReadonlyArray<WriteCapture> = isTrace
+    ? (writesOrTrace as ToolTrace).calls
         .filter(
-          (c) => c.toolName === 'write_file' && c.result.type === 'success' && typeof c.args.path === 'string'
+          (c: { toolName: string; result: { type: string }; args: Record<string, unknown> }) =>
+            c.toolName === 'write_file' &&
+            c.result.type === 'success' &&
+            typeof c.args.path === 'string'
         )
-        .map((c) => ({ path: c.args.path as string, content: String(c.args.content ?? '') }));
+        .map((c: { args: Record<string, unknown> }) => ({
+          path: c.args.path as string,
+          content: String(c.args.content ?? ''),
+        }))
+    : (writesOrTrace as ReadonlyArray<WriteCapture>);
   const found = writes.find((w) => w.path === path);
 
   if (!found) {
