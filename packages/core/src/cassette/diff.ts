@@ -19,9 +19,9 @@ export type DiffSeverity = 'none' | 'warn' | 'block';
 
 export interface DiffPolicy {
   /** Arg keys to exclude from comparison (e.g. 'timestamp', 'requestId'). */
-  ignoreKeys?: string[];
+  ignoreKeys?: string[] | undefined;
   /** Tool names to exclude from comparison entirely. */
-  ignoreTools?: string[];
+  ignoreTools?: string[] | undefined;
 }
 
 export interface DiffResult {
