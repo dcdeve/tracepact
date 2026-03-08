@@ -1,6 +1,6 @@
 {
   "name": "@tracepact/vitest",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Vitest plugin for TracePact — custom matchers and test helpers",
   "type": "module",
   "exports": {
@@ -12,7 +12,9 @@
       "import": "./dist/setup.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -23,7 +25,7 @@
     "directory": "packages/vitest"
   },
   "dependencies": {
-    "@tracepact/core": "0.4.0"
+    "@tracepact/core": "0.5.0"
   },
   "peerDependencies": {
     "vitest": ">=2.0.0"
