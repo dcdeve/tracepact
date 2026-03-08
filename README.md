@@ -44,7 +44,7 @@ No API calls. No tokens. Deterministic.
 ## Install
 
 ```
-npm install @tracepact/core @tracepact/vitest
+npm install @tracepact/core @tracepact/vitest @tracepact/cli
 
 npx tracepact init          # interactive setup
 npx tracepact init --demo   # scaffold a demo test suite
@@ -70,10 +70,13 @@ expect(trace).toHaveCalledMcpToolsInOrder([
 The MCP sandbox lets you mock entire MCP servers so tests run without a real server:
 
 ```ts
-import { createMockMcpServer } from '@tracepact/vitest';
+import { createMcpMock } from '@tracepact/core';
 
-const db = createMockMcpServer('database', {
-  query: ({ sql }) => ({ rows: [{ id: 1 }] }),
+const db = createMcpMock({
+  server: 'database',
+  tools: {
+    query: ({ sql }) => ({ type: 'success', content: JSON.stringify({ rows: [{ id: 1 }] }) }),
+  },
 });
 ```
 
@@ -160,8 +163,11 @@ expect(output).toPassJudge(
 ### Conditional matchers
 
 ```ts
-when(calledTool('write_file'))
-  .expect(trace).toHaveCalledTool('read_file');
+import { when, calledTool } from '@tracepact/core';
+
+// Only assert file read if write_file was called
+when(trace, calledTool('write_file'),
+  toHaveCalledTool(trace, 'read_file'));
 ```
 
 ---
@@ -180,6 +186,27 @@ const sandbox = createMockTools({
   dangerous:  denyAll(),
 });
 ```
+
+---
+
+## Test annotations
+
+Control which tests run based on environment — useful for keeping CI fast:
+
+```ts
+import { live, expensive, cheap } from '@tracepact/vitest';
+
+// Runs only when TRACEPACT_LIVE=1
+live('calls the real deploy API', async () => { /* ... */ });
+
+// Runs only when TRACEPACT_FULL=1 (Tier 3-4 assertions)
+expensive('semantic similarity check', async () => { /* ... */ });
+
+// Always runs — no API keys needed
+cheap('basic tool order assertions', async () => { /* ... */ });
+```
+
+Tests live in `*.tracepact.ts` files — the Vitest plugin picks them up automatically.
 
 ---
 
@@ -220,21 +247,88 @@ Record a live run once, replay it deterministically in CI without API calls:
 ```ts
 import { runSkill } from '@tracepact/vitest';
 
-// Record
+// Record (requires TRACEPACT_LIVE=1)
 const result = await runSkill(skill, {
-  mode: 'live',
+  prompt: 'deploy to staging',
   record: './cassettes/deploy.json',
-  driver,
+  sandbox,
+  tools,
 });
 
-// Replay
+// Replay (no API key needed)
 const replayed = await runSkill(skill, {
-  mode: 'replay',
-  cassette: './cassettes/deploy.json',
+  prompt: 'deploy to staging',
+  replay: './cassettes/deploy.json',
 });
 
 expect(replayed.trace).toHaveCalledTool('deploy', { env: 'staging' });
 ```
+
+---
+
+## Behavioral drift detection
+
+Compare two cassettes to catch regressions after changing a prompt or model:
+
+```ts
+// Via MCP tool in your IDE
+tracepact_diff({
+  cassette_a: './cassettes/before.json',
+  cassette_b: './cassettes/after.json',
+})
+// { changed: true, additions: ['write_file'], removals: [], diffs: [...] }
+```
+
+Useful for prompt engineering: record a baseline, tweak the system prompt, record again, diff.
+
+---
+
+## Promptfoo integration
+
+If you already use [Promptfoo](https://promptfoo.dev) for evals, TracePact's tool-trace assertions plug in directly:
+
+```yaml
+# promptfooconfig.yaml
+providers:
+  - file://./tracepact-provider.js
+
+prompts:
+  - "Review {{file}} for security issues"
+
+tests:
+  - vars:
+      file: src/auth.ts
+    assert:
+      - type: javascript
+        value: |
+          const { assertCalledTool } = require("@tracepact/promptfoo");
+          return assertCalledTool(output, context, "read_file");
+      - type: javascript
+        value: |
+          const { assertOutputMentions } = require("@tracepact/promptfoo");
+          return assertOutputMentions(output, context, "sql injection");
+```
+
+See [`@tracepact/promptfoo`](packages/promptfoo) for full setup and assertion reference.
+
+---
+
+## Redaction
+
+Strip API keys and secrets from test results before committing cassettes or publishing CI logs:
+
+```ts
+import { RedactionPipeline } from '@tracepact/core';
+
+const pipeline = new RedactionPipeline({
+  rules: [{ pattern: /sk-[a-zA-Z0-9]+/g, replacement: '[REDACTED]' }],
+  redactEnvValues: ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY'],
+});
+
+const cleaned = pipeline.redact(text);
+```
+
+Redaction runs automatically on cassette recordings and JSON reporter output.
 
 ---
 
@@ -305,6 +399,19 @@ TracePact ships an MCP server so Claude Code, Cursor, and Windsurf can run and i
   }
 }
 ```
+
+Available MCP tools:
+
+| Tool | What it does |
+| --- | --- |
+| `tracepact_audit` | Static analysis of a SKILL.md (no API key needed) |
+| `tracepact_run` | Execute the test suite via Vitest |
+| `tracepact_capture` | Auto-generate tests from a recorded cassette |
+| `tracepact_replay` | Replay a cassette without any API calls |
+| `tracepact_diff` | Compare two cassettes to detect behavioral drift |
+| `tracepact_list_tests` | Discover test files and cassettes for a skill |
+
+Recommended IDE workflow: `audit` → `list_tests` → `run` → `capture` → `diff` after changes.
 
 See [IDE Setup guide](docs/guide/ide-setup.md) for Cursor and Windsurf config.
 
