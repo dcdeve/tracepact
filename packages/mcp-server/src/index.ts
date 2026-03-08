@@ -99,7 +99,7 @@ server.registerTool(
     inputSchema: diffSchema,
   },
   async (args) => {
-    const result = handleDiff(args);
+    const result = await handleDiff(args);
     return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
   }
 );

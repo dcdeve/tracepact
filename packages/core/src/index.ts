@@ -55,6 +55,10 @@ export type { ProcessSandboxConfig } from './sandbox/process/index.js';
 export { McpMockServer, createMcpMock } from './sandbox/mcp/index.js';
 export type { McpMockConfig, McpToolHandler } from './sandbox/mcp/index.js';
 
+// MCP Client
+export { McpClient, type McpClientConfig, type McpToolInfo } from './mcp/client.js';
+export { connectMcp, type McpConnection } from './mcp/connect.js';
+
 // Cache
 export { CacheStore } from './cache/cache-store.js';
 export { computeManifest, manifestHash } from './cache/run-manifest.js';
@@ -167,6 +171,7 @@ export type { GenerateOptions } from './capture/generator.js';
 // Cassettes
 export { CassetteRecorder } from './cassette/recorder.js';
 export { CassettePlayer } from './cassette/player.js';
+export { diffCassettes } from './cassette/diff.js';
 export type {
   Cassette,
   CassetteMetadata,
@@ -174,6 +179,13 @@ export type {
   CassetteToolCall,
   CassetteStub,
 } from './cassette/types.js';
+export type {
+  DiffResult,
+  DiffToolCall,
+  ArgDiff,
+  DiffSeverity,
+  DiffPolicy,
+} from './cassette/diff.js';
 
 // Tokens
 export { TokenAccumulator, type TokenEntry, type TokenReport } from './cost/accumulator.js';

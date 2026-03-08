@@ -7,6 +7,7 @@ import { audit } from './commands/audit.js';
 import { cache } from './commands/cache.js';
 import { capture } from './commands/capture.js';
 import { costReport } from './commands/cost-report.js';
+import { diff } from './commands/diff.js';
 import { doctor } from './commands/doctor.js';
 import { init } from './commands/init.js';
 import { models } from './commands/models.js';
@@ -94,6 +95,19 @@ export function createProgram(): Command {
     .option('--refresh', 'Force refresh from models.dev')
     .option('--verbose', 'Show pricing details')
     .action((providerId, opts) => models(providerId, opts));
+
+  program
+    .command('diff <cassette-a> <cassette-b>')
+    .description('Compare two cassettes and show behavioral differences')
+    .option('--json', 'Output as JSON')
+    .option('--exit-on-change', 'Exit with code 1 if changes detected (for CI)')
+    .option('--fail-on <severity>', 'Exit with code 1 if severity >= threshold (none|warn|block)')
+    .option('--ignore-keys <keys>', 'Comma-separated arg keys to ignore (e.g. timestamp,requestId)')
+    .option(
+      '--ignore-tools <tools>',
+      'Comma-separated tool names to ignore (e.g. read_file,list_dir)'
+    )
+    .action((cassetteA, cassetteB, opts) => diff(cassetteA, cassetteB, opts));
 
   program
     .command('doctor')
