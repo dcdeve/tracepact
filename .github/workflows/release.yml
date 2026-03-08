@@ -28,6 +28,9 @@ jobs:
 
       - run: npm test
 
+      - name: Disable git hooks in CI
+        run: git config core.hooksPath /dev/null
+
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
@@ -35,6 +38,7 @@ jobs:
           title: "chore: version packages"
           commit: "chore: version packages"
         env:
+          HUSKY: "0"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

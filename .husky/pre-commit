@@ -1,1 +1,1 @@
-npm run lint && npm run typecheck && npm run build && npm test
+npx biome check --write . && git add -u && npm run typecheck && npm run build && npm test
