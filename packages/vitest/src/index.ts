@@ -27,6 +27,7 @@ export {
   parseSkill,
   MockSandbox,
   TraceBuilder,
+  connectMcp,
 } from '@tracepact/core';
 
 export type {
@@ -38,4 +39,5 @@ export type {
   MatcherResult,
   TypedToolDefinition,
   WriteCapture,
+  McpConnection,
 } from '@tracepact/core';

@@ -1,15 +1,17 @@
 import { log } from '../logger.js';
 import { TraceBuilder } from '../trace/trace-builder.js';
-import type { ToolResult, ToolTrace } from '../trace/types.js';
+import type { ToolCallSource, ToolResult, ToolTrace } from '../trace/types.js';
 import type { MockToolDefs, WriteCapture } from './types.js';
 
 export class MockSandbox {
   private readonly tools: MockToolDefs;
+  private readonly sources: Record<string, ToolCallSource>;
   private readonly traceBuilder = new TraceBuilder();
   private readonly writes: WriteCapture[] = [];
 
-  constructor(tools: MockToolDefs) {
+  constructor(tools: MockToolDefs, sources?: Record<string, ToolCallSource>) {
     this.tools = tools;
+    this.sources = sources ?? {};
   }
 
   async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
@@ -31,7 +33,12 @@ export class MockSandbox {
     }
 
     const durationMs = performance.now() - start;
-    this.traceBuilder.addCall({ toolName: name, args, result, durationMs, unknownTool });
+    const source = this.sources[name];
+    if (source) {
+      this.traceBuilder.addCall({ toolName: name, args, result, durationMs, unknownTool, source });
+    } else {
+      this.traceBuilder.addCall({ toolName: name, args, result, durationMs, unknownTool });
+    }
 
     if (name === 'write_file' && result.type === 'success' && typeof args.path === 'string') {
       this.writes.push({ path: args.path, content: String(args.content ?? '') });

@@ -33,6 +33,14 @@ export const auditSchema = {
 export const diffSchema = {
   cassette_a: z.string().describe('Path to the baseline cassette file (before change)'),
   cassette_b: z.string().describe('Path to the comparison cassette file (after change)'),
+  ignore_keys: z
+    .array(z.string())
+    .optional()
+    .describe('Arg keys to ignore in comparison (e.g. ["timestamp", "requestId"])'),
+  ignore_tools: z
+    .array(z.string())
+    .optional()
+    .describe('Tool names to exclude from comparison entirely (e.g. ["read_file"])'),
 };
 
 export const listTestsSchema = {

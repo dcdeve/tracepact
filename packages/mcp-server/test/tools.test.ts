@@ -119,8 +119,8 @@ describe('tracepact_replay', () => {
 });
 
 describe('tracepact_diff', () => {
-  it('detects changes between cassettes', () => {
-    const result = handleDiff({
+  it('detects changes between cassettes', async () => {
+    const result = await handleDiff({
       cassette_a: join(TEST_DIR, 'cassette-a.json'),
       cassette_b: join(TEST_DIR, 'cassette-b.json'),
     });
@@ -130,8 +130,8 @@ describe('tracepact_diff', () => {
     expect(result.diffs.length).toBeGreaterThan(0); // path arg changed
   });
 
-  it('reports no changes for identical cassettes', () => {
-    const result = handleDiff({
+  it('reports no changes for identical cassettes', async () => {
+    const result = await handleDiff({
       cassette_a: join(TEST_DIR, 'cassette-a.json'),
       cassette_b: join(TEST_DIR, 'cassette-a.json'),
     });
