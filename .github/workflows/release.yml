@@ -28,6 +28,9 @@ jobs:
 
       - run: npm test
 
+      - name: Disable git hooks in CI
+        run: git config core.hooksPath /dev/null
+
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
