@@ -44,7 +44,7 @@
   - Tier 0: `toHaveRetrievedDocument`, `toHaveRetrievedTopResult`, `toNotHaveRetrievedDocument`, `toHaveRetrievedNResults`, `toHaveCitedSources`
   - Tier 3: `toHaveGroundedResponseIn`, `toNotHaveHallucinated`, `toHaveRetrievalScore`
 - **Trajectory matcher** — `toMatchTrajectory` with `calledTool`, `calledToolWith`, `calledToolAfter`, `calledToolTimes` conditions
-- **Conditional matchers** — `when(trace, condition).then(matcher)` for conditional assertions
+- **Conditional matchers** — `when(trace, condition, matcher)` for conditional assertions
 - **LLM-as-Judge** — `toPassJudge` with calibration sets, `JudgeExecutor`, `buildJudgePrompt`
 - **Semantic assertions** — `toBeSemanticallySimilar`, `toHaveSemanticOverlap` with embedding providers
 - **Cassette capture** — `tracepact capture` generates test files from recorded traces

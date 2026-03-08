@@ -153,8 +153,8 @@ await toMatchTrajectory(ctx, expectedTrajectory);
 ```typescript
 import { when, calledTool, calledToolWith } from '@tracepact/core';
 
-when(trace, calledTool('bash')).then(toHaveCalledTool(trace, 'bash'));
-when(trace, calledToolWith('read_file', { path: /test/ })).then(/* ... */);
+when(trace, calledTool('bash'), toHaveCalledTool(trace, 'read_file'));
+when(trace, calledToolWith('read_file', { path: /test/ }), toNotHaveCalledTool(trace, 'bash'));
 ```
 
 ### RAG Assertions
