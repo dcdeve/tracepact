@@ -93,20 +93,26 @@ export class JudgeExecutor {
 
     const voterErrors: string[] = [];
 
-    for (let i = 0; i < consensusCount; i++) {
-      try {
-        const vote = await this.singleJudge(prompt, {
-          temperature: config.temperature ?? (consensusCount > 1 ? 0.3 : 0),
-          maxTokens: config.maxTokens ?? 1024,
-          ...(config.timeout !== undefined ? { timeout: config.timeout } : {}),
-        });
-        votes.push(vote);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+    const singleConfig = {
+      temperature: config.temperature ?? (consensusCount > 1 ? 0.3 : 0),
+      maxTokens: config.maxTokens ?? 1024,
+      ...(config.timeout !== undefined ? { timeout: config.timeout } : {}),
+    };
+
+    const results = await Promise.allSettled(
+      Array.from({ length: consensusCount }, () => this.singleJudge(prompt, singleConfig))
+    );
+
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        votes.push(result.value);
+      } else {
+        const message =
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
         log.warn(`Judge voter ${i + 1}/${consensusCount} failed: ${message}`);
         voterErrors.push(message);
       }
-    }
+    });
 
     if (votes.length === 0) {
       const combined = voterErrors.join('; ');
