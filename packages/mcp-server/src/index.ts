@@ -83,7 +83,7 @@ server.registerTool(
     inputSchema: runSchema,
   },
   async (args) => {
-    const result = handleRun(args);
+    const result = await handleRun(args);
     return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
   }
 );
