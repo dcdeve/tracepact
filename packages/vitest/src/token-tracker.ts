@@ -29,7 +29,15 @@ export function trackUsage(
   globalTokens.add(entry);
   runTokens.add(entry);
 
-  const budget = process.env.TRACEPACT_BUDGET ? Number(process.env.TRACEPACT_BUDGET) : undefined;
+  const rawBudget = process.env.TRACEPACT_BUDGET;
+  const parsedBudget = rawBudget !== undefined ? Number(rawBudget) : undefined;
+  if (parsedBudget !== undefined && !Number.isFinite(parsedBudget)) {
+    throw new Error(
+      `[tracepact] TRACEPACT_BUDGET="${rawBudget}" is not a valid number. Fix the environment variable or unset it to disable budget enforcement.`
+    );
+  }
+  const budget =
+    parsedBudget !== undefined && Number.isFinite(parsedBudget) ? parsedBudget : undefined;
   if (budget && runTokens.exceedsBudget(budget)) {
     const used = runTokens.liveTokens;
     throw new Error(
