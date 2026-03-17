@@ -66,6 +66,7 @@ export class CassettePlayer {
   private filePath: string;
   private stubs: CassetteStub[];
   private strict: boolean;
+  private cachedCassette: Cassette | undefined;
 
   constructor(filePath: string, stubs?: CassetteStub[], strict = true) {
     this.filePath = filePath;
@@ -74,8 +75,18 @@ export class CassettePlayer {
   }
 
   async load(): Promise<Cassette> {
+    if (this.cachedCassette) {
+      return this.cachedCassette;
+    }
     const raw = await readFile(this.filePath, 'utf-8');
-    return migrate(JSON.parse(raw));
+    this.cachedCassette = migrate(JSON.parse(raw));
+    return this.cachedCassette;
+  }
+
+  /** Clears the cached cassette and reloads it from disk. */
+  async reload(): Promise<Cassette> {
+    this.cachedCassette = undefined;
+    return this.load();
   }
 
   async replay(currentPrompt?: string, currentToolDefsHash?: string): Promise<RunResult> {
