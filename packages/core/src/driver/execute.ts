@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import pkg from '../../package.json' assert { type: 'json' };
 import { CacheStore } from '../cache/cache-store.js';
 import { CassettePlayer } from '../cassette/player.js';
 import { CassetteRecorder } from '../cassette/recorder.js';
@@ -155,8 +156,8 @@ export async function executePrompt(
           : 'unknown';
       })(),
       temperature: opts.config?.temperature ?? 0,
-      frameworkVersion: '__VERSION__',
-      driverVersion: '__VERSION__',
+      frameworkVersion: pkg.version,
+      driverVersion: pkg.version,
     }
   );
 

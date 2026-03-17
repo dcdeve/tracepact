@@ -1,3 +1,4 @@
+import pkg from '../../package.json' assert { type: 'json' };
 import { computeManifest } from '../cache/run-manifest.js';
 import { DEFAULT_MAX_TOOL_ITERATIONS, DEFAULT_TEMPERATURE } from '../config/defaults.js';
 import { DriverError } from '../errors/driver-error.js';
@@ -280,8 +281,8 @@ export class OpenAIDriver implements AgentDriver {
         provider: this.name,
         model: this.model,
         temperature: temp,
-        frameworkVersion: '__VERSION__',
-        driverVersion: '__VERSION__',
+        frameworkVersion: pkg.version,
+        driverVersion: pkg.version,
       };
       if (input.config?.seed !== undefined) {
         manifestParams.seed = input.config.seed;
