@@ -152,18 +152,23 @@ export async function toNotHaveHallucinated(
     };
   }
 
-  // Split output into sentences/claims
+  // Split output into sentences/claims.
+  // Also split on newlines and list-item markers so bullet-point outputs are handled.
   const sentences = output
-    .split(/[.!?]+/)
+    .split(/[.!?\n]+|(?:^|\n)\s*[-*•]\s*/m)
     .map((s) => s.trim())
     .filter((s) => s.length > 10);
 
   if (sentences.length === 0) {
     return {
-      pass: true,
-      message: 'Output too short to check for hallucinations.',
+      pass: false,
+      message: 'No checkable sentences found in output — cannot verify hallucinations.',
       tier: 3,
-      diagnostic: { expected: 'no hallucinations', received: 'no claims to check', tokens: 0 },
+      diagnostic: {
+        expected: 'no hallucinations',
+        received: 'skipped: no checkable sentences',
+        tokens: 0,
+      },
     };
   }
 
