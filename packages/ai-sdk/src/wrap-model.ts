@@ -17,7 +17,13 @@ export interface WrapModelOptions {
 }
 
 export interface WrapModelReturn {
-  /** The wrapped LanguageModelV3 — pass this to generateText / streamText. */
+  /**
+   * The wrapped LanguageModelV3 — pass this to generateText / streamText.
+   *
+   * **streamText**: delegates to the inner model but tool calls in the stream
+   * are NOT tracked (tracking is planned for step 7). Throws in replay mode
+   * because there is no real provider to stream from.
+   */
   model: LanguageModelV3;
   /** Get the ToolTrace after the run completes. */
   getTrace(): ToolTrace;
@@ -78,8 +84,17 @@ export function wrapModel(
     },
 
     async doStream(callOptions: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult> {
-      // Streaming support — delegates directly for now.
-      // Full streaming tracking is a follow-up (plan step 7).
+      if (bridgeReady) await bridgeReady;
+
+      if (bridge?.isReplay()) {
+        throw new Error(
+          '@tracepact/ai-sdk: doStream is not supported in replay mode. Use generateText instead of streamText.'
+        );
+      }
+
+      // Streaming tracking is not yet implemented (plan step 7).
+      // In record/observe-only mode, the stream delegates directly — tool calls
+      // in the stream will NOT be tracked.
       return innerModel.doStream(callOptions);
     },
   };
