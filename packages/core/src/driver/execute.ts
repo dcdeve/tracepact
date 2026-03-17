@@ -91,8 +91,10 @@ export async function executePrompt(
   // 4. Execute via driver
   const providerName = opts.provider ?? detectProvider();
   const config = resolveConfig(providerName, opts.tracepactConfig);
-  const hasProviderOverrides = !!opts.tracepactConfig?.providers;
-  const cacheKey = hasProviderOverrides ? null : providerName;
+  const hasProviderOverrides = !!opts.tracepactConfig?.providers || !!opts.tracepactConfig?.model;
+  const cacheKey = hasProviderOverrides
+    ? null
+    : `${providerName}::${process.env.TRACEPACT_MODEL ?? ''}`;
   let registry = cacheKey !== null ? _registryCache.get(cacheKey) : undefined;
   if (!registry) {
     registry = new DriverRegistry(config);
