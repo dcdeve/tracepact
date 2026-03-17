@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import pkg from '../../package.json' assert { type: 'json' };
 import { CacheStore } from '../cache/cache-store.js';
-import type { RunManifest } from '../cache/run-manifest.js';
 import { CassettePlayer } from '../cassette/player.js';
 import { CassetteRecorder } from '../cassette/recorder.js';
 import type { CassetteStub } from '../cassette/types.js';
@@ -167,8 +166,13 @@ export async function executePrompt(
   }
 
   const result = await driver.run(runInput);
-  // driver.run() always produces a manifest for live runs
-  const manifest = result.runManifest as RunManifest;
+  // driver.run() must always produce a manifest for live runs.
+  const manifest = result.runManifest;
+  if (!manifest) {
+    throw new Error(
+      `Driver "${providerName}" returned no runManifest for a live run. All drivers must populate runManifest when executing against a real LLM.`
+    );
+  }
 
   // 4b. Populate cache with the actual manifest produced by the driver.
   await cache.set(manifest, result);

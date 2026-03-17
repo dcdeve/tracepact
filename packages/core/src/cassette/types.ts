@@ -29,7 +29,6 @@ export interface ObservedMetadata {
   readonly source: 'observed';
   readonly sessionId: string;
   readonly tool?: string;
-  readonly recordedAt?: string;
 }
 
 export interface CassetteResult {

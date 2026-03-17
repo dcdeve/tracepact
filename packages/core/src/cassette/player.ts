@@ -26,14 +26,17 @@ const CURRENT_VERSION = 2;
  * version N+1. The `migrate` function below chains them automatically.
  */
 const MIGRATORS: Record<number, (c: unknown) => unknown> = {
-  1: (c: any) => ({
-    ...c,
-    version: 2,
-    metadata: {
-      ...c.metadata,
-      source: 'skill_run',
-    },
-  }),
+  1: (c: unknown) => {
+    const prev = c as { version: number; metadata?: Record<string, unknown> };
+    if (!prev.metadata || typeof prev.metadata !== 'object') {
+      throw new Error('Cannot migrate v1 cassette: missing or invalid "metadata" field.');
+    }
+    return {
+      ...prev,
+      version: 2,
+      metadata: { ...prev.metadata, source: 'skill_run' },
+    };
+  },
 };
 
 function migrate(raw: unknown): Cassette {
