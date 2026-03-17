@@ -1,16 +1,16 @@
 import {
   type AgentDriver,
+  DriverRegistry,
   type MockSandbox,
   type MockToolDefs,
-  OpenAIDriver,
-  PROVIDER_ENV_KEYS,
-  PROVIDER_PRESETS,
+  type ProviderConfig,
   captureWrites,
   createMockTools,
   denyAll,
   mockReadFile,
   parseSkill,
   passthrough,
+  resolveConfig,
 } from '@tracepact/core';
 
 export interface ToolMockConfig {
@@ -128,22 +128,22 @@ export class TracepactProvider {
 
   private createDriver(): AgentDriver {
     const providerName = this.config.provider ?? 'openai';
-    const preset = PROVIDER_PRESETS[providerName];
 
-    const baseURL = this.config.baseURL ?? preset?.baseURL;
-    const envKey = PROVIDER_ENV_KEYS[providerName];
-    const apiKey = this.config.apiKey ?? (envKey ? process.env[envKey] : undefined);
-
-    const model = this.config.model ?? 'gpt-4o';
-
-    const opts: Record<string, unknown> = {
-      model,
-      providerName,
+    const providerConfig: ProviderConfig = {
+      model: this.config.model ?? 'gpt-4o',
+      ...(this.config.apiKey ? { apiKey: this.config.apiKey } : {}),
+      ...(this.config.baseURL ? { baseURL: this.config.baseURL } : {}),
     };
-    if (apiKey) opts.apiKey = apiKey;
-    if (baseURL) opts.baseURL = baseURL;
 
-    return new OpenAIDriver(opts as any);
+    const config = resolveConfig(providerName, {
+      providers: {
+        default: providerName,
+        [providerName]: providerConfig,
+      },
+    });
+
+    const registry = new DriverRegistry(config);
+    return registry.get(providerName);
   }
 }
 

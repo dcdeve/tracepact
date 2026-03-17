@@ -2,7 +2,7 @@ import type { Message, UsageInfo } from '../driver/types.js';
 import type { ToolCallSource } from '../trace/types.js';
 
 export interface Cassette {
-  readonly version: 1;
+  readonly version: number;
   readonly recordedAt: string;
   readonly metadata: CassetteMetadata;
   readonly result: CassetteResult;
@@ -11,9 +11,13 @@ export interface Cassette {
 export interface CassetteMetadata {
   readonly skillHash: string;
   readonly prompt: string;
+  readonly promptHash: string;
+  readonly toolDefsHash: string;
   readonly provider: string;
   readonly model: string;
+  readonly temperature: number;
   readonly frameworkVersion: string;
+  readonly driverVersion: string;
 }
 
 export interface CassetteResult {
@@ -41,6 +45,10 @@ export interface CassetteToolCall {
 }
 
 export interface CassetteStub {
-  at: { sequenceIndex: number; toolName: string };
+  at: {
+    sequenceIndex?: number;
+    toolName: string;
+    args?: Readonly<Record<string, unknown>>;
+  };
   return: { type: 'success'; content: string } | { type: 'error'; message: string };
 }

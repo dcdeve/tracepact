@@ -77,15 +77,21 @@ export class JudgeExecutor {
   ): Promise<JudgeVote> {
     const sandbox = new MockSandbox({});
 
-    const result = await this.driver.run({
-      skill: {
-        systemPrompt:
-          'You are a precise evaluator. Always respond with the exact JSON format requested.',
-      },
-      prompt,
-      sandbox,
-      config: { temperature: config.temperature, maxTokens: config.maxTokens },
-    });
+    let result: Awaited<ReturnType<typeof this.driver.run>>;
+    try {
+      result = await this.driver.run({
+        skill: {
+          systemPrompt:
+            'You are a precise evaluator. Always respond with the exact JSON format requested.',
+        },
+        prompt,
+        sandbox,
+        config: { temperature: config.temperature, maxTokens: config.maxTokens },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Judge API call failed: ${message}`, { cause: err });
+    }
 
     const jsonMatch =
       result.output.match(/```json\s*\n([\s\S]*?)```/) ??

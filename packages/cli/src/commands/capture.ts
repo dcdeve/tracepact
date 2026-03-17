@@ -88,6 +88,7 @@ export async function capture(opts: CaptureOptions): Promise<void> {
     tools,
     sandbox,
     record: resolve(cassettePath),
+    healthCheck: true,
     ...(opts.provider ? { provider: opts.provider } : {}),
   });
 

@@ -36,3 +36,7 @@ temp
 # Plan and Claude config (local-only)
 plan/
 CLAUDE.md
+
+# AI agent workspace (local-only)
+.agents/
+.claude/

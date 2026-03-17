@@ -1,0 +1,30 @@
+> **Sistema:** Tracepact — testing framework for LLM-powered skills (AI agents)
+> **Este documento cubre:** Concerns transversales — error handling, logging, auth/API keys, validación y token budget
+> **Índice general:** [index.md](./index.md)
+
+# Cross-Cutting Concerns
+
+### Error Handling
+- **Estrategia:** Mixta — typed errors for known conditions, unhandled rejections for unexpected failures
+- **Implementación:** `[OBSERVED]` `TracepactError` hierarchy in `core/src/errors/` — `ConfigError`, `DriverError`, `SkillParseError` each carry structured fields. Retry logic in `RetryPolicy` catches API errors by status code.
+- **Gaps:** `[OBSERVED]` MCP server tool handlers do not have a unified error wrapping layer — each handler (`audit.ts`, `capture.ts`, `diff.ts`, `replay.ts`, `run.ts`, `list-tests.ts`) has its own ad-hoc try-catch.
+
+### Logging
+- **Estrategia:** Consistent
+- **Implementación:** `[OBSERVED]` Single `log` object from `core/src/logger.ts`, level configurable via `TRACEPACT_LOG` env var. Used throughout core modules.
+- **Gaps:** No structured logging (no JSON log format), no trace IDs to correlate log lines with specific runs.
+
+### Auth / API Key Management
+- **Estrategia:** Env var convention
+- **Implementación:** `[OBSERVED]` API keys are read from env vars in `resolveConfig()`. `RedactionPipeline` scrubs known API key patterns from strings.
+- **Gaps:** `[INFERRED]` Keys are passed directly to SDK constructors — no secret rotation, no vault integration. `redactEnvValues` in `RedactionConfig` must be manually populated to redact specific env var values.
+
+### Validation
+- **Estrategia:** Boundary validation only
+- **Implementación:** `[OBSERVED]` `parseSkill()` validates frontmatter structure and file size. `defineConfig()` applies defaults. `loadScenarios()` validates that input is an array with `name` fields.
+- **Gaps:** `[INFERRED]` `MockSandbox.executeTool()` does not validate tool args against the declared JSON schema — an agent passing wrong types would get whatever the mock returns, not a schema error.
+
+### Token Budget
+- **Estrategia:** Opt-in via `TRACEPACT_BUDGET`
+- **Implementación:** `[OBSERVED]` `TokenAccumulator` in `core/src/cost/` tracks live vs cached tokens separately. `exceedsBudget()` checked during runs.
+- **Gaps:** `[OBSERVED]` `exceedsBudget()` is checked in `packages/vitest/src/token-tracker.ts` inside `trackUsage()`, which is called after each live LLM call in `runSkill()`. When budget is exceeded it throws immediately, stopping the run mid-loop.

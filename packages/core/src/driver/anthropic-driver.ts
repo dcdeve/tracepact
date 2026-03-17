@@ -55,8 +55,15 @@ export class AnthropicDriver implements AgentDriver {
   private async getClient(): Promise<any> {
     if (!this.client) {
       // Dynamic import — @anthropic-ai/sdk is an optional peer dependency
-      // @ts-ignore — optional peer dep, may not be installed
-      const mod: any = await import('@anthropic-ai/sdk');
+      let mod: any;
+      try {
+        // @ts-ignore — optional peer dep, may not be installed
+        mod = await import('@anthropic-ai/sdk');
+      } catch {
+        throw new DriverError(
+          'Package @anthropic-ai/sdk is not installed. Run: npm install @anthropic-ai/sdk'
+        );
+      }
       const Anthropic = mod.default ?? mod.Anthropic;
       this.client = new Anthropic({ apiKey: this.apiKey });
     }
@@ -67,6 +74,11 @@ export class AnthropicDriver implements AgentDriver {
     if (!input.skill) {
       throw new DriverError(
         'RunInput.skill is required. Pass a ParsedSkill (from parseSkill()) or { systemPrompt: "..." }.'
+      );
+    }
+    if (input.config?.stream === true && !this.capabilities.streaming) {
+      throw new DriverError(
+        `Driver "${this.name}" does not support streaming. Remove stream: true from RunConfig.`
       );
     }
 
@@ -240,7 +252,7 @@ export class AnthropicDriver implements AgentDriver {
     return {
       output: finalOutput,
       trace,
-      messages: [],
+      messages: messages as import('./types.js').Message[],
       usage: {
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,

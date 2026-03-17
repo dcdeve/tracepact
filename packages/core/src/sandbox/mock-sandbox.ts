@@ -8,10 +8,16 @@ export class MockSandbox {
   private readonly sources: Record<string, ToolCallSource>;
   private readonly traceBuilder = new TraceBuilder();
   private readonly writes: WriteCapture[] = [];
+  private readonly writeToolName: string;
 
-  constructor(tools: MockToolDefs, sources?: Record<string, ToolCallSource>) {
+  constructor(
+    tools: MockToolDefs,
+    sources?: Record<string, ToolCallSource>,
+    writeToolName = 'write_file'
+  ) {
     this.tools = tools;
     this.sources = sources ?? {};
+    this.writeToolName = writeToolName;
   }
 
   async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
@@ -28,6 +34,7 @@ export class MockSandbox {
       try {
         result = await impl(args);
       } catch (err: any) {
+        log.error(`MockSandbox: tool '${name}' threw an error.`, err);
         result = { type: 'error', message: `Mock threw: ${err.message}` };
       }
     }
@@ -40,7 +47,7 @@ export class MockSandbox {
       this.traceBuilder.addCall({ toolName: name, args, result, durationMs, unknownTool });
     }
 
-    if (name === 'write_file' && result.type === 'success' && typeof args.path === 'string') {
+    if (name === this.writeToolName && result.type === 'success' && typeof args.path === 'string') {
       this.writes.push({ path: args.path, content: String(args.content ?? '') });
     }
 

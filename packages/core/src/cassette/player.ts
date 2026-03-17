@@ -17,11 +17,14 @@ export class CassettePlayer {
     const raw = await readFile(this.filePath, 'utf-8');
     const cassette: Cassette = JSON.parse(raw);
 
-    if (cassette.version !== 1) {
-      throw new Error(`Unsupported cassette version: ${cassette.version}. Expected 1.`);
+    switch (cassette.version) {
+      case 1:
+        return cassette;
+      default:
+        throw new Error(
+          `Unsupported cassette version: ${cassette.version}. Supported versions: [1].`
+        );
     }
-
-    return cassette;
   }
 
   async replay(currentPrompt?: string): Promise<RunResult> {
@@ -37,9 +40,17 @@ export class CassettePlayer {
 
     // Apply stubs to trace calls
     const calls = result.trace.calls.map((call) => {
-      const stub = this.stubs.find(
-        (s) => s.at.sequenceIndex === call.sequenceIndex && s.at.toolName === call.toolName
-      );
+      const stub = this.stubs.find((s) => {
+        if (s.at.toolName !== call.toolName) return false;
+        if (s.at.sequenceIndex !== undefined && s.at.sequenceIndex !== call.sequenceIndex)
+          return false;
+        if (s.at.args !== undefined) {
+          for (const [key, value] of Object.entries(s.at.args)) {
+            if (call.args[key] !== value) return false;
+          }
+        }
+        return true;
+      });
       if (stub) {
         log.info(`Stub applied: ${call.toolName}@${call.sequenceIndex} → ${stub.return.type}`);
         return { ...call, result: stub.return };
@@ -62,13 +73,13 @@ export class CassettePlayer {
       duration: 0,
       runManifest: {
         skillHash: cassette.metadata.skillHash,
-        promptHash: '',
-        toolDefsHash: '',
+        promptHash: cassette.metadata.promptHash,
+        toolDefsHash: cassette.metadata.toolDefsHash,
         provider: cassette.metadata.provider,
         model: cassette.metadata.model,
-        temperature: 0,
+        temperature: cassette.metadata.temperature,
         frameworkVersion: cassette.metadata.frameworkVersion,
-        driverVersion: 'cassette-replay',
+        driverVersion: cassette.metadata.driverVersion,
       } as RunManifest,
     };
   }

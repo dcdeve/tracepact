@@ -6,9 +6,7 @@
   "bin": {
     "tracepact": "dist/index.js"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "engines": {
     "node": ">=20"
   },
@@ -28,13 +26,7 @@
     "typescript": "^5.5.0",
     "vitest": "^2.1.0"
   },
-  "keywords": [
-    "ai",
-    "testing",
-    "cli",
-    "tracepact",
-    "agent"
-  ],
+  "keywords": ["ai", "testing", "cli", "tracepact", "agent"],
   "author": "dcdeve",
   "license": "MIT",
   "repository": {

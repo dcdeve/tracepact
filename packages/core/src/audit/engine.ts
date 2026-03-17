@@ -6,11 +6,7 @@ export class AuditEngine {
   private rules: AuditRule[];
 
   constructor(rules?: AuditRule[]) {
-    this.rules = rules ?? BUILTIN_RULES;
-  }
-
-  addRule(rule: AuditRule): void {
-    this.rules.push(rule);
+    this.rules = rules ? [...rules] : [...BUILTIN_RULES];
   }
 
   auditSkill(skill: ParsedSkill): AuditReport {
@@ -27,7 +23,19 @@ export class AuditEngine {
   }
 
   audit(input: AuditInput): AuditReport {
-    const findings = this.rules.flatMap((rule) => rule.check(input));
+    const findings = this.rules.flatMap((rule) => {
+      try {
+        return rule.check(input);
+      } catch (err) {
+        return [
+          {
+            rule: rule.name,
+            severity: 'medium' as const,
+            message: `Rule "${rule.name}" threw an unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        ];
+      }
+    });
 
     const summary = {
       critical: findings.filter((f) => f.severity === 'critical').length,

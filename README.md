@@ -20,12 +20,12 @@ TracePact catches that. Record a known-good run, replay it in CI without API cal
 
 ```bash
 # 1. Record a baseline (one-time, live)
-npx tracepact run --live --record
+npx tracepact run --record
 
 # 2. Change your prompt, model, or tool wiring
 
 # 3. Record again and diff
-npx tracepact run --live --record
+npx tracepact run --record
 npx tracepact diff cassettes/before.json cassettes/after.json
 
 # 4. CI: fail on behavioral regressions
@@ -289,12 +289,18 @@ npx tracepact run --live              # run against real LLM APIs
 npx tracepact run --record            # record cassettes (implies --live)
 npx tracepact run --replay ./dir      # replay without API calls
 npx tracepact diff a.json b.json      # compare two cassettes
-npx tracepact diff a.json b.json --fail-on warn    # fail CI on any drift
-npx tracepact diff a.json b.json --fail-on block   # fail only on structural changes
+npx tracepact diff a.json b.json --fail-on warn       # fail CI on any drift
+npx tracepact diff a.json b.json --fail-on block      # fail only on structural changes
+npx tracepact diff a.json b.json --exit-on-change     # fail CI on any change (ignores severity)
 npx tracepact diff a.json b.json --ignore-keys timestamp  # skip noisy args
 npx tracepact diff a.json b.json --ignore-tools read_file # skip tools you don't care about
 npx tracepact audit                   # static analysis (no API key)
-npx tracepact capture                 # auto-generate tests from live run
+npx tracepact capture                 # auto-generate tests from a live run or existing cassette
+npx tracepact cache list              # show cached entries
+npx tracepact cache clear             # delete cache entries
+npx tracepact cache verify            # check cache integrity
+npx tracepact cost-report             # show token usage from last run
+npx tracepact models                  # list available models and providers
 npx tracepact init                    # interactive setup
 npx tracepact doctor                  # environment health check
 ```

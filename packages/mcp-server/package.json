@@ -6,9 +6,7 @@
   "bin": {
     "tracepact-mcp-server": "dist/index.js"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "engines": {
     "node": ">=20"
   },
@@ -18,8 +16,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@tracepact/core": "0.5.0"
+  },
+  "peerDependencies": {
+    "zod": ">=3.22.0"
   },
   "devDependencies": {
     "@types/node": "^25.3.5",
@@ -27,13 +28,7 @@
     "typescript": "^5.5.0",
     "vitest": "^2.1.0"
   },
-  "keywords": [
-    "ai",
-    "testing",
-    "mcp",
-    "tracepact",
-    "agent"
-  ],
+  "keywords": ["ai", "testing", "mcp", "tracepact", "agent"],
   "author": "dcdeve",
   "license": "MIT",
   "repository": {

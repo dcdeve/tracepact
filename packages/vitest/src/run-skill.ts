@@ -30,6 +30,12 @@ export interface RunSkillOptions {
   replay?: string;
   /** Stubs to apply when replaying a cassette */
   stubs?: CassetteStub[];
+  /**
+   * Execution mode override.
+   * - `'mock'`: return an empty result from the sandbox without calling the LLM.
+   *   Must be set explicitly; runSkill() will throw if no mode is configured.
+   */
+  mode?: 'mock';
 }
 
 function buildMcpSandbox(
@@ -103,13 +109,15 @@ export async function runSkill(
     return result;
   }
 
-  // Mock-only mode: return trace from sandbox
-  console.warn(
-    '[tracepact] runSkill() called without TRACEPACT_LIVE=1 or replay. ' +
-      'Returning empty mock result. Set TRACEPACT_LIVE=1 for live execution, ' +
-      'pass replay: "path/to/cassette.json" for replay, ' +
-      'or use executePrompt() from @tracepact/core for direct live calls.'
-  );
+  // Mock-only mode: must be explicitly opted into via `mode: 'mock'`
+  if (input.mode !== 'mock') {
+    throw new Error(
+      '[tracepact] runSkill() has no execution mode configured. ' +
+        'Set TRACEPACT_LIVE=1 for live execution, ' +
+        'pass replay: "path/to/cassette.json" for replay, ' +
+        'or pass mode: "mock" to explicitly return an empty mock result.'
+    );
+  }
   const fallbackSandbox = sandbox ?? new MockSandbox({});
   return {
     output: '',

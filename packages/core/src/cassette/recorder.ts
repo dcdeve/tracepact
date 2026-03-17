@@ -1,14 +1,18 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import type { RedactionConfig } from '../config/types.js';
 import type { RunResult } from '../driver/types.js';
 import { log } from '../logger.js';
+import { RedactionPipeline } from '../redaction/pipeline.js';
 import type { Cassette, CassetteMetadata } from './types.js';
 
 export class CassetteRecorder {
   private filePath: string;
+  private readonly redaction: RedactionPipeline;
 
-  constructor(filePath: string) {
+  constructor(filePath: string, redactionConfig?: RedactionConfig) {
     this.filePath = filePath;
+    this.redaction = new RedactionPipeline(redactionConfig);
   }
 
   async save(result: RunResult, metadata: CassetteMetadata): Promise<void> {
@@ -37,8 +41,9 @@ export class CassetteRecorder {
       },
     };
 
+    const redactedCassette = this.redaction.redactObject(cassette);
     await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(this.filePath, JSON.stringify(cassette, null, 2), 'utf-8');
+    await writeFile(this.filePath, JSON.stringify(redactedCassette, null, 2), 'utf-8');
     log.info(`Cassette saved: ${this.filePath}`);
   }
 }

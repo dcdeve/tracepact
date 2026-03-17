@@ -6,6 +6,14 @@ import { OpenAIDriver } from './openai-driver.js';
 import { PROVIDER_ENV_KEYS, PROVIDER_PRESETS } from './presets.js';
 import type { AgentDriver, HealthCheckResult } from './types.js';
 
+type DriverConstructor = new (opts: any) => AgentDriver;
+
+// Providers that require a dedicated driver class.
+// All other providers fall back to OpenAIDriver (OpenAI-compatible API).
+const NATIVE_DRIVERS: Record<string, DriverConstructor> = {
+  anthropic: AnthropicDriver,
+};
+
 function createDriver(name: string, config: ProviderConfig): AgentDriver {
   // Resolve API key: explicit config > env var for this provider > env var fallback
   const envKey = PROVIDER_ENV_KEYS[name];
@@ -19,9 +27,10 @@ function createDriver(name: string, config: ProviderConfig): AgentDriver {
   if (config.maxConcurrency !== undefined) baseOpts.maxConcurrency = config.maxConcurrency;
   if (config.retry) baseOpts.retry = config.retry;
 
-  // Use native AnthropicDriver for anthropic provider
-  if (name === 'anthropic') {
-    return new AnthropicDriver(baseOpts);
+  // Use dedicated driver if one is registered for this provider
+  const NativeDriver = NATIVE_DRIVERS[name];
+  if (NativeDriver) {
+    return new NativeDriver(baseOpts);
   }
 
   // All other providers go through OpenAI-compatible driver
@@ -41,6 +50,7 @@ function createDriver(name: string, config: ProviderConfig): AgentDriver {
 
 export class DriverRegistry {
   private drivers = new Map<string, AgentDriver>();
+  private initErrors = new Map<string, Error>();
   private defaultName: string;
 
   constructor(config: TracepactConfig) {
@@ -54,6 +64,7 @@ export class DriverRegistry {
         this.drivers.set(name, createDriver(name, providerConfig));
       } catch (err: any) {
         log.warn(`Driver "${name}" failed to initialize: ${err.message}. It will error if used.`);
+        this.initErrors.set(name, err);
       }
     }
   }
@@ -65,10 +76,14 @@ export class DriverRegistry {
   get(name: string): AgentDriver {
     const driver = this.drivers.get(name);
     if (!driver) {
-      throw new ConfigError(
-        `providers.${name}`,
-        `Provider "${name}" is not configured or failed to initialize.`
-      );
+      const initError = this.initErrors.get(name);
+      if (initError) {
+        throw new ConfigError(
+          `providers.${name}`,
+          `Provider "${name}" failed to initialize: ${initError.message}`
+        );
+      }
+      throw new ConfigError(`providers.${name}`, `Provider "${name}" is not configured.`);
     }
     return driver;
   }

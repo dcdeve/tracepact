@@ -59,7 +59,12 @@ export class OpenAIDriver implements AgentDriver {
 
   private async getClient(): Promise<any> {
     if (!this.client) {
-      const { default: OpenAI } = await import('openai');
+      let OpenAI: any;
+      try {
+        ({ default: OpenAI } = await import('openai'));
+      } catch {
+        throw new DriverError('Package openai is not installed. Run: npm install openai');
+      }
       const opts: any = { apiKey: this.apiKey };
       if (this.baseURL) {
         opts.baseURL = this.baseURL;
@@ -73,6 +78,11 @@ export class OpenAIDriver implements AgentDriver {
     if (!input.skill) {
       throw new DriverError(
         'RunInput.skill is required. Pass a ParsedSkill (from parseSkill()) or { systemPrompt: "..." }.'
+      );
+    }
+    if (input.config?.stream === true && !this.capabilities.streaming) {
+      throw new DriverError(
+        `Driver "${this.name}" does not support streaming. Remove stream: true from RunConfig.`
       );
     }
 
@@ -140,22 +150,7 @@ export class OpenAIDriver implements AgentDriver {
           tool_calls: result.toolCalls,
         });
 
-        for (const toolCall of result.toolCalls) {
-          const fnName = toolCall.function.name;
-          let fnArgs: Record<string, unknown>;
-          try {
-            fnArgs = JSON.parse(toolCall.function.arguments);
-          } catch {
-            fnArgs = {};
-          }
-
-          const toolResult = await input.sandbox.executeTool(fnName, fnArgs);
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: toolResult.type === 'success' ? toolResult.content : toolResult.message,
-          });
-        }
+        await this.executeToolCalls(result.toolCalls, input.sandbox, messages);
       } else {
         // Non-streaming mode (original)
         const response: any = await this.semaphore.run(() =>
@@ -191,26 +186,7 @@ export class OpenAIDriver implements AgentDriver {
 
         messages.push(msg);
 
-        for (const toolCall of msg.tool_calls) {
-          const fnName = toolCall.function.name;
-          let fnArgs: Record<string, unknown>;
-          try {
-            fnArgs = JSON.parse(toolCall.function.arguments);
-          } catch {
-            fnArgs = {};
-            log.warn(
-              `OpenAI driver: could not parse tool args for ${fnName}: ${toolCall.function.arguments}`
-            );
-          }
-
-          const result = await input.sandbox.executeTool(fnName, fnArgs);
-
-          messages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: result.type === 'success' ? result.content : result.message,
-          });
-        }
+        await this.executeToolCalls(msg.tool_calls, input.sandbox, messages);
       }
 
       iterations++;
@@ -241,7 +217,7 @@ export class OpenAIDriver implements AgentDriver {
     return {
       output: finalOutput,
       trace,
-      messages: [],
+      messages: messages as import('./types.js').Message[],
       usage: {
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,
@@ -250,6 +226,33 @@ export class OpenAIDriver implements AgentDriver {
       duration,
       runManifest: manifest,
     };
+  }
+
+  private async executeToolCalls(
+    toolCalls: any[],
+    sandbox: RunInput['sandbox'],
+    messages: any[]
+  ): Promise<void> {
+    for (const toolCall of toolCalls) {
+      const fnName = toolCall.function.name;
+      let fnArgs: Record<string, unknown>;
+      try {
+        fnArgs = JSON.parse(toolCall.function.arguments);
+      } catch {
+        fnArgs = {};
+        log.warn(
+          `OpenAI driver: could not parse tool args for ${fnName}: ${toolCall.function.arguments}`
+        );
+      }
+
+      const result = await sandbox.executeTool(fnName, fnArgs);
+
+      messages.push({
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: result.type === 'success' ? result.content : result.message,
+      });
+    }
   }
 
   private async runStreaming(

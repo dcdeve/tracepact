@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { RedactionPipeline } from '@tracepact/core';
+import { type RedactionConfig, RedactionPipeline } from '@tracepact/core';
 import type { File, Reporter } from 'vitest';
 import { writeTokenReport } from './token-tracker.js';
 
@@ -13,7 +13,11 @@ interface TestResult {
 
 export class TracepactJsonReporter implements Reporter {
   private results: TestResult[] = [];
-  private readonly redaction = new RedactionPipeline();
+  private readonly redaction: RedactionPipeline;
+
+  constructor(redactionConfig?: RedactionConfig) {
+    this.redaction = new RedactionPipeline(redactionConfig);
+  }
 
   onFinished(files?: File[]) {
     if (!files) return;

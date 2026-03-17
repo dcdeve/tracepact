@@ -17,7 +17,11 @@ export function defineTools<T extends ToolDefs>(defs: T): TypedToolDefinition[] 
     } else {
       try {
         jsonSchema = zodToJsonSchema(schema);
-      } catch {
+      } catch (err) {
+        console.warn(
+          `[define-tools] Failed to convert schema for tool "${name}" to JSON Schema. Falling back to generic object schema. Error:`,
+          err
+        );
         jsonSchema = { type: 'object' };
       }
     }

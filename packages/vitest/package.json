@@ -12,9 +12,7 @@
       "import": "./dist/setup.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "engines": {
     "node": ">=20"
   },

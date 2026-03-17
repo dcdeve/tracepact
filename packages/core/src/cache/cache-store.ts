@@ -29,6 +29,7 @@ export class CacheStore {
   private readonly ttlSeconds: number;
   private readonly verifyOnRead: boolean;
   private readonly redaction: RedactionPipeline;
+  private _writeFailures = 0;
 
   constructor(config: CacheConfig) {
     this.enabled = config.enabled;
@@ -36,6 +37,10 @@ export class CacheStore {
     this.ttlSeconds = config.ttlSeconds;
     this.verifyOnRead = config.verifyOnRead;
     this.redaction = new RedactionPipeline();
+  }
+
+  get writeFailures(): number {
+    return this._writeFailures;
   }
 
   private filePath(hash: string): string {
@@ -104,6 +109,7 @@ export class CacheStore {
       await rename(tmpPath, finalPath);
       log.info(`Cache: stored ${hash}.`);
     } catch (err: any) {
+      this._writeFailures++;
       log.warn(`Cache: write failed: ${err.message}. Continuing without cache.`);
       try {
         await this.deleteFile(tmpPath);

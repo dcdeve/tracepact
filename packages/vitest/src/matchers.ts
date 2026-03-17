@@ -41,6 +41,26 @@ import {
   toNotHaveRetrievedDocument,
   toPassJudge,
 } from '@tracepact/core';
+import { trackUsage } from './token-tracker.js';
+
+function isToolTrace(value: unknown): value is { calls: unknown[]; totalCalls: number } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'calls' in value &&
+    Array.isArray((value as Record<string, unknown>).calls) &&
+    'totalCalls' in value
+  );
+}
+
+function assertToolTrace(received: unknown, matcherName: string): void {
+  if (!isToolTrace(received)) {
+    const got = received === null ? 'null' : Array.isArray(received) ? 'array' : typeof received;
+    throw new TypeError(
+      `${matcherName}: expected a ToolTrace, got ${got}. Make sure you are passing the trace returned by your agent runner.`
+    );
+  }
+}
 
 function adapt(result: MatcherResult) {
   return {
@@ -53,6 +73,15 @@ function adapt(result: MatcherResult) {
 
 async function adaptAsync(result: Promise<MatcherResult>) {
   return adapt(await result);
+}
+
+async function adaptAsyncWithJudgeTokens(result: Promise<MatcherResult>) {
+  const resolved = await result;
+  const tokens = resolved.diagnostic?.tokens ?? 0;
+  if (tokens > 0 && process.env.TRACEPACT_LIVE === '1') {
+    trackUsage(process.env.TRACEPACT_PROVIDER ?? 'unknown', 'judge', tokens, 0);
+  }
+  return adapt(resolved);
 }
 
 function formatDiagnostic(r: MatcherResult): string {
@@ -73,24 +102,31 @@ function formatDiagnostic(r: MatcherResult): string {
 export const tracepactMatchers = {
   // Tier 0
   toHaveCalledTool(received: any, name: string, args?: Record<string, unknown>) {
+    assertToolTrace(received, 'toHaveCalledTool');
     return adapt(toHaveCalledTool(received, name, args));
   },
   toNotHaveCalledTool(received: any, name: string) {
+    assertToolTrace(received, 'toNotHaveCalledTool');
     return adapt(toNotHaveCalledTool(received, name));
   },
   toHaveCalledToolsInOrder(received: any, names: string[]) {
+    assertToolTrace(received, 'toHaveCalledToolsInOrder');
     return adapt(toHaveCalledToolsInOrder(received, names));
   },
   toHaveCalledToolsInStrictOrder(received: any, names: string[]) {
+    assertToolTrace(received, 'toHaveCalledToolsInStrictOrder');
     return adapt(toHaveCalledToolsInStrictOrder(received, names));
   },
   toHaveToolCallCount(received: any, name: string, count: number) {
+    assertToolTrace(received, 'toHaveToolCallCount');
     return adapt(toHaveToolCallCount(received, name, count));
   },
   toHaveFirstCalledTool(received: any, name: string) {
+    assertToolTrace(received, 'toHaveFirstCalledTool');
     return adapt(toHaveFirstCalledTool(received, name));
   },
   toHaveLastCalledTool(received: any, name: string) {
+    assertToolTrace(received, 'toHaveLastCalledTool');
     return adapt(toHaveLastCalledTool(received, name));
   },
 
@@ -135,10 +171,10 @@ export const tracepactMatchers = {
 
   // Tier 4
   toPassJudge(received: any, criteria: string, options?: ToPassJudgeOptions) {
-    return adaptAsync(toPassJudge(received, criteria, options));
+    return adaptAsyncWithJudgeTokens(toPassJudge(received, criteria, options));
   },
   toMatchTrajectory(received: any, config: TrajectoryConfig) {
-    return adaptAsync(toMatchTrajectory(received, config));
+    return adaptAsyncWithJudgeTokens(toMatchTrajectory(received, config));
   },
 
   // MCP
@@ -148,32 +184,41 @@ export const tracepactMatchers = {
     toolName: string,
     args?: Record<string, unknown>
   ) {
+    assertToolTrace(received, 'toHaveCalledMcpTool');
     return adapt(toHaveCalledMcpTool(received, serverName, toolName, args));
   },
   toHaveCalledMcpServer(received: any, serverName: string) {
+    assertToolTrace(received, 'toHaveCalledMcpServer');
     return adapt(toHaveCalledMcpServer(received, serverName));
   },
   toNotHaveCalledMcpTool(received: any, serverName: string, toolName: string) {
+    assertToolTrace(received, 'toNotHaveCalledMcpTool');
     return adapt(toNotHaveCalledMcpTool(received, serverName, toolName));
   },
   toHaveCalledMcpToolsInOrder(received: any, calls: McpCallSpec[]) {
+    assertToolTrace(received, 'toHaveCalledMcpToolsInOrder');
     return adapt(toHaveCalledMcpToolsInOrder(received, calls));
   },
 
   // RAG
   toHaveRetrievedDocument(received: any, toolName: string, docMatcher: Record<string, unknown>) {
+    assertToolTrace(received, 'toHaveRetrievedDocument');
     return adapt(toHaveRetrievedDocument(received, toolName, docMatcher));
   },
   toHaveRetrievedTopResult(received: any, toolName: string, docMatcher: Record<string, unknown>) {
+    assertToolTrace(received, 'toHaveRetrievedTopResult');
     return adapt(toHaveRetrievedTopResult(received, toolName, docMatcher));
   },
   toNotHaveRetrievedDocument(received: any, toolName: string, docMatcher: Record<string, unknown>) {
+    assertToolTrace(received, 'toNotHaveRetrievedDocument');
     return adapt(toNotHaveRetrievedDocument(received, toolName, docMatcher));
   },
   toHaveRetrievedNResults(received: any, toolName: string, n: number) {
+    assertToolTrace(received, 'toHaveRetrievedNResults');
     return adapt(toHaveRetrievedNResults(received, toolName, n));
   },
   toHaveCitedSources(received: any, sources: string[]) {
+    assertToolTrace(received, 'toHaveCitedSources');
     return adapt(toHaveCitedSources(received, sources));
   },
 
@@ -184,6 +229,7 @@ export const tracepactMatchers = {
     toolName: string,
     options: GroundingOptions
   ) {
+    assertToolTrace(received, 'toHaveGroundedResponseIn');
     return adaptAsync(toHaveGroundedResponseIn(received, output, toolName, options));
   },
   toNotHaveHallucinated(
@@ -192,9 +238,11 @@ export const tracepactMatchers = {
     toolName: string,
     options: HallucinationOptions
   ) {
+    assertToolTrace(received, 'toNotHaveHallucinated');
     return adaptAsync(toNotHaveHallucinated(received, output, toolName, options));
   },
   toHaveRetrievalScore(received: any, toolName: string, options: RetrievalScoreOptions) {
+    assertToolTrace(received, 'toHaveRetrievalScore');
     return adaptAsync(toHaveRetrievalScore(received, toolName, options));
   },
 };

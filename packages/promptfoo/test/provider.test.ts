@@ -7,15 +7,15 @@ vi.mock('@tracepact/core', async () => {
   return {
     ...actual,
     parseSkill: vi.fn(),
-    OpenAIDriver: vi.fn(),
-    DriverRegistry: { resolve: vi.fn() },
+    resolveConfig: vi.fn(() => ({})),
+    DriverRegistry: vi.fn(),
   };
 });
 
-import { OpenAIDriver, parseSkill } from '@tracepact/core';
+import { DriverRegistry, parseSkill } from '@tracepact/core';
 
 const mockParseSkill = vi.mocked(parseSkill);
-const MockOpenAIDriver = vi.mocked(OpenAIDriver);
+const MockDriverRegistry = vi.mocked(DriverRegistry);
 
 function makeRunResult(overrides: Record<string, unknown> = {}) {
   return {
@@ -30,14 +30,24 @@ function makeRunResult(overrides: Record<string, unknown> = {}) {
 }
 
 describe('TracepactProvider', () => {
+  let mockDriverInstance: {
+    name: string;
+    capabilities: object;
+    run: ReturnType<typeof vi.fn>;
+    healthCheck: ReturnType<typeof vi.fn>;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: OpenAIDriver constructor returns a mock driver with a run method
-    MockOpenAIDriver.mockImplementation((() => ({
+    mockDriverInstance = {
       name: 'openai',
       capabilities: {},
       run: vi.fn(async () => makeRunResult()),
       healthCheck: vi.fn(),
+    };
+    // Default: DriverRegistry constructor returns registry with get() returning mock driver
+    MockDriverRegistry.mockImplementation((() => ({
+      get: vi.fn(() => mockDriverInstance),
     })) as any);
   });
 
@@ -84,8 +94,7 @@ describe('TracepactProvider', () => {
     expect(result.error).toBeUndefined();
 
     // Verify systemPrompt was passed to driver.run
-    const driverInstance = MockOpenAIDriver.mock.results[0]?.value;
-    expect(driverInstance.run).toHaveBeenCalledWith(
+    expect(mockDriverInstance.run).toHaveBeenCalledWith(
       expect.objectContaining({
         skill: { systemPrompt: 'You review code for security issues.' },
         prompt: 'Check this function',
@@ -106,9 +115,8 @@ describe('TracepactProvider', () => {
 
     await provider.callApi('Do something');
 
-    const driverInstance = MockOpenAIDriver.mock.results[0]?.value;
-    const runCall = driverInstance.run.mock.calls[0][0];
-    const sandbox = runCall.sandbox;
+    const runCall = mockDriverInstance.run.mock.calls[0]?.[0];
+    const sandbox = runCall?.sandbox;
 
     // Verify sandbox has the mocked tools by executing them
     const readResult = await sandbox.executeTool('read_file', { path: 'a.txt' });
@@ -132,14 +140,7 @@ describe('TracepactProvider', () => {
   });
 
   it('returns error when driver throws', async () => {
-    MockOpenAIDriver.mockImplementation((() => ({
-      name: 'openai',
-      capabilities: {},
-      run: vi.fn(async () => {
-        throw new Error('API rate limit exceeded');
-      }),
-      healthCheck: vi.fn(),
-    })) as any);
+    mockDriverInstance.run.mockRejectedValueOnce(new Error('API rate limit exceeded'));
 
     const provider = new TracepactProvider({
       systemPrompt: 'Test.',

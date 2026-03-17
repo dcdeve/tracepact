@@ -1,0 +1,16 @@
+> **Sistema:** Tracepact — testing framework for LLM-powered skills (AI agents)
+> **Este documento cubre:** Deuda técnica conocida y riesgos arquitectónicos con severidad y evidencia
+> **Índice general:** [index.md](./index.md)
+
+# Technical Debt & Risks
+
+| # | Descripción | Severidad | Ubicación | Evidencia |
+|---|-------------|-----------|-----------|-----------|
+| 1 | Only `OpenAIEmbeddingProvider` ships with the package — no alternative implementations provided. The interface is injectable via options (`provider: EmbeddingProvider`) so custom providers can be passed, but there's no built-in registry or discovery mechanism | Baja | `packages/core/src/matchers/tier3/` | `[OBSERVED]` Single bundled implementation; injection point exists via `SemanticSimilarityOptions.provider` |
+| 2 | Both `AnthropicDriver` and `OpenAIDriver` use dynamic `import()` to load their SDKs — missing SDK causes runtime error at first driver use, not at startup. The error now includes explicit install instructions (`npm install <pkg>`), but the detection still happens mid-test rather than during setup. | Media | `packages/core/src/driver/anthropic-driver.ts`, `packages/core/src/driver/openai-driver.ts` | `[OBSERVED]` Dynamic import with try-catch in `getClient()` in both drivers |
+| 3 | Cassette version dispatch uses a `switch` statement — adding version 2 requires a new `case` branch in `player.ts`. No automated migration between versions; old cassettes must be re-recorded when breaking schema changes are introduced. | Baja | `packages/core/src/cassette/player.ts` | `[OBSERVED]` `switch(version)` with `default: throw` — extensible but not auto-migrating |
+| 4 | `maxConcurrency` is per-provider; no global concurrency cap across providers | Baja | `packages/core/src/driver/` | `[OBSERVED]` Separate `Semaphore` per driver instance — `AnthropicDriver` instantiates `new Semaphore(config.maxConcurrency ?? 5)` in its constructor (`anthropic-driver.ts:47`) |
+| 5 | Tier 4 judge runs additional LLM calls inside a test assertion — cost and latency are bounded by a default of 1024 tokens unless overridden via `maxTokens` in `JudgeConfig` | Media | `packages/core/src/matchers/tier4/` | `[OBSERVED]` `JudgeConfig.maxTokens` defaults to `1024` (`judge.ts:52`: `maxTokens: config.maxTokens ?? 1024`) |
+| 6 | No interfaces between `@tracepact/vitest` and `@tracepact/core` — the vitest package imports concrete classes directly | Baja | `packages/vitest/src/run-skill.ts` | `[OBSERVED]` Direct imports of `DriverRegistry`, `CacheStore`, etc. |
+| 7 | `MockSandbox` does not validate tool args against declared JSON schema | Baja | `packages/core/src/sandbox/` | `[OBSERVED]` `MockSandbox.executeTool()` passes `args` directly to `impl(args)` without validating against `jsonSchema` |
+| 8 | `RedactionPipeline` is applied in `CacheStore.set()` and `CassetteRecorder.save()` before writing to disk. Both receive `RedactionConfig` from the caller. This is an intentional, implemented feature — not pending debt. | Baja | `packages/core/src/cache/cache-store.ts`, `packages/core/src/cassette/recorder.ts` | `[OBSERVED]` `this.redaction.redactObject(result)` called before persisting in both writers |

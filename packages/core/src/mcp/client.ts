@@ -70,7 +70,14 @@ export class McpClient {
       throw new Error(`McpClient[${this.server}]: not connected. Call connect() first.`);
     }
 
-    const response = await this.client.callTool({ name, arguments: args });
+    let response: Awaited<ReturnType<typeof this.client.callTool>>;
+    try {
+      response = await this.client.callTool({ name, arguments: args });
+    } catch (err) {
+      this._connected = false;
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`McpClient[${this.server}]: connection lost — ${message}`);
+    }
 
     if (response.isError) {
       const message = Array.isArray(response.content)
