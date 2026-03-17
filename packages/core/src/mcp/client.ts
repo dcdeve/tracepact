@@ -60,7 +60,6 @@ export class McpClient {
 
     const handshake = async () => {
       await this.client.connect(this.transport);
-      this._connected = true;
       const response = await this.client.listTools();
       this._tools = (response.tools ?? []).map((t) => {
         const info: McpToolInfo = {
@@ -70,6 +69,7 @@ export class McpClient {
         if (t.description) info.description = t.description;
         return info;
       });
+      this._connected = true;
     };
 
     await Promise.race([handshake(), timeoutPromise]);
