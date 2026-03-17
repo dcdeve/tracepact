@@ -77,6 +77,7 @@ export class OpenAIDriver implements AgentDriver {
     baseURL?: string;
     providerName?: string;
     maxConcurrency?: number;
+    semaphoreTimeoutMs?: number;
     retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number };
   }) {
     const apiKey = config.apiKey ?? process.env.OPENAI_API_KEY;
@@ -91,7 +92,7 @@ export class OpenAIDriver implements AgentDriver {
     this.model = config.model;
     this.name = config.providerName ?? 'openai';
     this.retry = new RetryPolicy(config.retry);
-    this.semaphore = new Semaphore(config.maxConcurrency ?? 5);
+    this.semaphore = new Semaphore(config.maxConcurrency ?? 5, config.semaphoreTimeoutMs);
   }
 
   /** @internal — allows injecting a mock client for testing */

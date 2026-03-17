@@ -66,6 +66,7 @@ export class AnthropicDriver implements AgentDriver {
     apiKey?: string;
     providerName?: string;
     maxConcurrency?: number;
+    semaphoreTimeoutMs?: number;
     retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number };
   }) {
     const apiKey = config.apiKey ?? process.env.ANTHROPIC_API_KEY;
@@ -78,7 +79,7 @@ export class AnthropicDriver implements AgentDriver {
     this.model = config.model;
     this.name = config.providerName ?? 'anthropic';
     this.retry = new RetryPolicy(config.retry);
-    this.semaphore = new Semaphore(config.maxConcurrency ?? 5);
+    this.semaphore = new Semaphore(config.maxConcurrency ?? 5, config.semaphoreTimeoutMs);
   }
 
   /** @internal — allows injecting a mock client for testing */
