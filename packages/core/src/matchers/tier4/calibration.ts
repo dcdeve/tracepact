@@ -108,5 +108,24 @@ export function loadBundledCalibration(name: string): CalibrationSet {
 export async function loadCustomCalibration(filePath: string): Promise<CalibrationSet> {
   const raw = await readFile(resolve(filePath), 'utf-8');
   const data = parseYaml(raw);
-  return { name: filePath, examples: data.examples ?? data };
+  const examples = data.examples ?? data;
+  if (!Array.isArray(examples)) {
+    throw new Error(
+      `Invalid calibration file "${filePath}": expected an array of examples (or an object with an "examples" array), got ${typeof examples}.`
+    );
+  }
+  for (let i = 0; i < examples.length; i++) {
+    const ex = examples[i];
+    if (
+      typeof ex?.input !== 'string' ||
+      typeof ex?.output !== 'string' ||
+      typeof ex?.pass !== 'boolean' ||
+      typeof ex?.justification !== 'string'
+    ) {
+      throw new Error(
+        `Invalid calibration file "${filePath}": examples[${i}] must have string "input", string "output", boolean "pass", and string "justification".`
+      );
+    }
+  }
+  return { name: filePath, examples };
 }
