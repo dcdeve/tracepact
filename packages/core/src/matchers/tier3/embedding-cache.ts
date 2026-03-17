@@ -98,4 +98,5 @@ export async function embedWithCache(
 /** Clear the shared global embedding cache (call between test suites if needed). */
 export function clearEmbeddingCache(): void {
   globalEmbeddingCache.clear();
+  inFlight.clear();
 }
