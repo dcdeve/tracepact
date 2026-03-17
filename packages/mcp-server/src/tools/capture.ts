@@ -6,6 +6,7 @@ import type { GenerateOptions } from '@tracepact/core';
 export async function handleCapture(args: {
   skill_path: string;
   prompt: string;
+  cassette_path?: string | undefined;
 }): Promise<{
   testFile: string;
   cassettePath: string;
@@ -15,7 +16,7 @@ export async function handleCapture(args: {
   try {
     await parseSkill(args.skill_path);
     const skillBase = args.skill_path.replace(/\.(md|yaml)$/, '');
-    const cassettePath = `./cassettes/${skillBase}.json`;
+    const cassettePath = args.cassette_path ?? `./cassettes/${skillBase}.json`;
 
     // Check if cassette exists — if so, generate from it (dry-run mode)
     let cassette: Record<string, unknown>;
