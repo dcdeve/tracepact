@@ -2,10 +2,11 @@ import { resolve } from 'node:path';
 import { TraceBuilder } from '../../trace/trace-builder.js';
 import type { ToolResult, ToolTrace } from '../../trace/types.js';
 import type { McpMockServer } from '../mcp/mcp-mock-server.js';
+import type { Sandbox } from '../types.js';
 import { DockerClient } from './docker-client.js';
 import type { ContainerConfig } from './types.js';
 
-export class ContainerSandbox {
+export class ContainerSandbox implements Sandbox {
   private config: ContainerConfig;
   private docker: DockerClient;
   private containerId: string | null = null;

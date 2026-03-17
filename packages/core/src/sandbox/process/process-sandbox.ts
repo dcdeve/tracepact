@@ -6,11 +6,12 @@ import { promisify } from 'node:util';
 import { log } from '../../logger.js';
 import { TraceBuilder } from '../../trace/trace-builder.js';
 import type { ToolResult, ToolTrace } from '../../trace/types.js';
+import type { Sandbox } from '../types.js';
 import type { ProcessSandboxConfig } from './types.js';
 
 const exec = promisify(execFile);
 
-export class ProcessSandbox {
+export class ProcessSandbox implements Sandbox {
   private config: ProcessSandboxConfig;
   private workdir: string;
   private ownsWorkdir: boolean;

@@ -9,6 +9,7 @@ import { parseSkill } from '../parser/skill-parser.js';
 import type { ParsedSkill } from '../parser/types.js';
 import { RedactionPipeline } from '../redaction/pipeline.js';
 import { MockSandbox } from '../sandbox/mock-sandbox.js';
+import type { Sandbox } from '../sandbox/types.js';
 import type { TypedToolDefinition } from '../tools/types.js';
 import { DriverRegistry, _setRegistryCacheChecker } from './registry.js';
 import { detectProvider, resolveConfig } from './resolve.js';
@@ -29,7 +30,7 @@ export function clearRegistryCache(): void {
 
 export interface ExecutePromptOptions {
   prompt: string;
-  sandbox?: MockSandbox;
+  sandbox?: Sandbox;
   tools?: TypedToolDefinition[];
   config?: RunConfig;
   tracepactConfig?: Partial<TracepactConfig>;
