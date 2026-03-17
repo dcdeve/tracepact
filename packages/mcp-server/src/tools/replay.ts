@@ -26,7 +26,7 @@ export function handleReplay(args: { cassette_path: string }): {
       trace,
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { pass: false, trace: {}, error: message };
+    console.error('[tracepact] replay failed:', err);
+    throw err;
   }
 }

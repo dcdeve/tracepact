@@ -111,10 +111,8 @@ describe('tracepact_replay', () => {
     expect(trace.calls).toHaveLength(2);
   });
 
-  it('returns error for missing cassette', () => {
-    const result = handleReplay({ cassette_path: join(TEST_DIR, 'nonexistent.json') });
-    expect(result.pass).toBe(false);
-    expect(result.error).toBeDefined();
+  it('throws for missing cassette', () => {
+    expect(() => handleReplay({ cassette_path: join(TEST_DIR, 'nonexistent.json') })).toThrow();
   });
 });
 

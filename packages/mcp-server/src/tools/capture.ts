@@ -63,12 +63,7 @@ export async function handleCapture(args: {
       assertionsGenerated: analysis.assertions.length,
     };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      testFile: '',
-      cassettePath: '',
-      assertionsGenerated: 0,
-      error: message,
-    };
+    console.error('[tracepact] capture failed:', err);
+    throw err;
   }
 }
