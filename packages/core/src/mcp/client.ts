@@ -15,6 +15,8 @@ export interface McpClientConfig {
   env?: Record<string, string>;
   /** Timeout in ms for each tool call. Defaults to 30 000 ms. */
   toolCallTimeoutMs?: number;
+  /** Timeout in ms for the initial connect() + listTools() handshake. Defaults to 10 000 ms. */
+  connectTimeoutMs?: number;
 }
 
 export interface McpToolInfo {
@@ -47,18 +49,30 @@ export class McpClient {
   }
 
   async connect(): Promise<void> {
-    await this.client.connect(this.transport);
-    this._connected = true;
+    const timeoutMs = this.config.connectTimeoutMs ?? 10_000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(new Error(`McpClient[${this.server}]: connect timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    );
 
-    const response = await this.client.listTools();
-    this._tools = (response.tools ?? []).map((t) => {
-      const info: McpToolInfo = {
-        name: t.name,
-        inputSchema: (t.inputSchema ?? {}) as Record<string, unknown>,
-      };
-      if (t.description) info.description = t.description;
-      return info;
-    });
+    const handshake = async () => {
+      await this.client.connect(this.transport);
+      this._connected = true;
+      const response = await this.client.listTools();
+      this._tools = (response.tools ?? []).map((t) => {
+        const info: McpToolInfo = {
+          name: t.name,
+          inputSchema: (t.inputSchema ?? {}) as Record<string, unknown>,
+        };
+        if (t.description) info.description = t.description;
+        return info;
+      });
+    };
+
+    await Promise.race([handshake(), timeoutPromise]);
   }
 
   get tools(): readonly McpToolInfo[] {
