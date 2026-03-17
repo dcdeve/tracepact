@@ -10,13 +10,15 @@ export const globalTokens = new TokenAccumulator();
  * @param runTokens - A per-run accumulator used for budget enforcement.
  *   This must be a fresh TokenAccumulator created at the start of each runSkill()
  *   call so that budget checks are scoped to a single run, not the entire test suite.
+ *   When omitted (e.g. for judge calls outside of runSkill), the budget is checked
+ *   against the global suite accumulator so that judge token costs are also enforced.
  */
 export function trackUsage(
   provider: string,
   model: string,
   inputTokens: number,
   outputTokens: number,
-  runTokens: TokenAccumulator
+  runTokens?: TokenAccumulator
 ): void {
   const entry = {
     provider,
@@ -27,7 +29,7 @@ export function trackUsage(
   };
 
   globalTokens.add(entry);
-  runTokens.add(entry);
+  runTokens?.add(entry);
 
   const rawBudget = process.env.TRACEPACT_BUDGET;
   const parsedBudget = rawBudget !== undefined ? Number(rawBudget) : undefined;
@@ -38,8 +40,9 @@ export function trackUsage(
   }
   const budget =
     parsedBudget !== undefined && Number.isFinite(parsedBudget) ? parsedBudget : undefined;
-  if (budget && runTokens.exceedsBudget(budget)) {
-    const used = runTokens.liveTokens;
+  const budgetAccumulator = runTokens ?? globalTokens;
+  if (budget && budgetAccumulator.exceedsBudget(budget)) {
+    const used = budgetAccumulator.liveTokens;
     throw new Error(
       `Token budget exceeded: ${used.toLocaleString()} tokens used > ${budget.toLocaleString()} budget. Aborting to prevent runaway costs. Adjust --budget or TRACEPACT_BUDGET to increase the limit.`
     );
