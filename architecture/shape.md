@@ -4,7 +4,9 @@
 # Repository Shape
 <!-- BEGIN:GENERATED -->
 _Auto-generated from code — do not edit this block manually._
+
 > Auto-generated directory structure (depth 2)
+
 ```
 ├── architecture
 │   ├── components-drivers.md
@@ -129,7 +131,9 @@ _Auto-generated from code — do not edit this block manually._
 ├── skills-lock.json
 └── tsconfig.base.json
 ```
+
 ## Directory Roles
+
 | Path | Type | Files | Lines |
 |------|------|-------|-------|
 | `TODO/` | directory | 2 | 0 |
@@ -137,10 +141,13 @@ _Auto-generated from code — do not edit this block manually._
 | `docs/` | docs | 15 | 0 |
 | `examples/` | directory | 18 | 776 |
 | `experimental/` | directory | 1 | 0 |
-| `packages/` | packages | 204 | 17626 |
-| `scripts/` | scripts | 1 | 994 |
+| `packages/` | packages | 204 | 17672 |
+| `scripts/` | scripts | 1 | 958 |
+
 ## Package internals
+
 > Subdirectories of `packages/*/src/` (depth 1)
+
 | Package | Module | Files | Lines |
 |---------|--------|-------|-------|
 | `packages/cli` | `src/commands/` | 9 | 1129 |
@@ -152,19 +159,19 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/core` | `src/cassette/` | 5 | 348 |
 | `packages/core` | `src/config/` | 3 | 133 |
 | `packages/core` | `src/cost/` | 1 | 68 |
-| `packages/core` | `src/driver/` | 10 | 1346 |
+| `packages/core` | `src/driver/` | 10 | 1352 |
 | `packages/core` | `src/errors/` | 4 | 45 |
 | `packages/core` | `src/flake/` | 1 | 97 |
-| `packages/core` | `src/matchers/` | 22 | 2755 |
+| `packages/core` | `src/matchers/` | 22 | 2756 |
 | `packages/core` | `src/mcp/` | 2 | 168 |
 | `packages/core` | `src/models/` | 4 | 512 |
 | `packages/core` | `src/parser/` | 3 | 152 |
-| `packages/core` | `src/redaction/` | 3 | 81 |
-| `packages/core` | `src/sandbox/` | 13 | 933 |
+| `packages/core` | `src/redaction/` | 3 | 80 |
+| `packages/core` | `src/sandbox/` | 13 | 954 |
 | `packages/core` | `src/scenarios/` | 1 | 67 |
 | `packages/core` | `src/tools/` | 2 | 119 |
 | `packages/core` | `src/trace/` | 2 | 92 |
-| `packages/core` | `src/index.ts` | 1 | 242 |
+| `packages/core` | `src/index.ts` | 1 | 255 |
 | `packages/core` | `src/logger.ts` | 1 | 51 |
 | `packages/mcp-server` | `src/tools/` | 7 | 351 |
 | `packages/mcp-server` | `src/index.ts` | 1 | 143 |
@@ -175,7 +182,7 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/vitest` | `src/augment.d.ts` | 1 | 45 |
 | `packages/vitest` | `src/index.ts` | 1 | 44 |
 | `packages/vitest` | `src/json-reporter.ts` | 1 | 67 |
-| `packages/vitest` | `src/matchers.ts` | 1 | 194 |
+| `packages/vitest` | `src/matchers.ts` | 1 | 198 |
 | `packages/vitest` | `src/plugin.ts` | 1 | 24 |
 | `packages/vitest` | `src/run-skill.ts` | 1 | 161 |
 | `packages/vitest` | `src/setup.ts` | 1 | 74 |

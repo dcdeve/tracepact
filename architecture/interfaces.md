@@ -124,6 +124,9 @@ _Auto-generated from code — do not edit this block manually._
 | `GroundingOptions` | interface | `packages/core/src/matchers/rag/semantic.ts` |
 | `HallucinationOptions` | interface | `packages/core/src/matchers/rag/semantic.ts` |
 | `RetrievalScoreOptions` | interface | `packages/core/src/matchers/rag/semantic.ts` |
+| `JsonSchemaSpec` | interface | `packages/core/src/matchers/tier1/index.ts` |
+| `LineCountSpec` | interface | `packages/core/src/matchers/tier1/index.ts` |
+| `MarkdownSpec` | interface | `packages/core/src/matchers/tier1/index.ts` |
 | `EmbeddingProvider` | interface | `packages/core/src/matchers/tier3/embeddings.ts` |
 | `SemanticOverlapOptions` | interface | `packages/core/src/matchers/tier3/index.ts` |
 | `SemanticSimilarityOptions` | interface | `packages/core/src/matchers/tier3/index.ts` |

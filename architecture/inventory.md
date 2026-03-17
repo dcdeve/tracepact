@@ -36,35 +36,35 @@ _Auto-generated from code — do not edit this block manually._
 | Path | Lines | Exports | Top export |
 |------|-------|---------|------------|
 | `packages/cli/src/commands/init.ts` | 437 | 1 | `init` |
-| `packages/core/src/driver/openai-driver.ts` | 404 | 1 | `OpenAIDriver` |
+| `packages/core/src/driver/openai-driver.ts` | 413 | 1 | `OpenAIDriver` |
 | `packages/core/src/driver/anthropic-driver.ts` | 328 | 1 | `AnthropicDriver` |
 | `packages/core/src/matchers/rag/semantic.ts` | 293 | 6 | `toHaveGroundedResponseIn` |
-| `packages/core/src/matchers/tier1/index.ts` | 284 | 4 | `toHaveMarkdownStructure` |
+| `packages/core/src/matchers/tier1/index.ts` | 284 | 7 | `toHaveMarkdownStructure` |
 | `packages/core/src/matchers/tier0/index.ts` | 276 | 7 | `toHaveCalledTool` |
 | `packages/core/src/models/registry.ts` | 257 | 9 | `refreshModels` |
-| `packages/core/src/index.ts` | 242 | 216 | `defineConfig` |
+| `packages/core/src/index.ts` | 255 | 219 | `defineConfig` |
 | `packages/core/src/matchers/rag/index.ts` | 235 | 5 | `toHaveRetrievedDocument` |
 | `packages/core/src/cache/cache-store.ts` | 234 | 3 | `CacheEntry` |
 | `packages/core/src/matchers/tier4/judge.ts` | 219 | 5 | `buildJudgePrompt` |
 | `packages/core/src/audit/rules.ts` | 205 | 5 | `toolComboRisk` |
+| `packages/vitest/src/matchers.ts` | 198 | 1 | `tracepactMatchers` |
 | `packages/core/src/matchers/tier4/trajectory.ts` | 196 | 4 | `buildTraceSummary` |
-| `packages/vitest/src/matchers.ts` | 194 | 1 | `tracepactMatchers` |
 | `packages/cli/src/patterns/templates.ts` | 191 | 9 | `PACKAGE_JSON_TEMPLATE` |
 | `packages/core/src/models/snapshot.ts` | 189 | 1 | `SNAPSHOT_PROVIDERS` |
 | `packages/core/src/driver/execute.ts` | 187 | 3 | `clearRegistryCache` |
 | `packages/core/src/sandbox/container/container-sandbox.ts` | 182 | 1 | `ContainerSandbox` |
 | `packages/core/src/matchers/mcp/index.ts` | 178 | 5 | `toHaveCalledMcpTool` |
 | `packages/core/src/sandbox/process/process-sandbox.ts` | 174 | 1 | `ProcessSandbox` |
+| `packages/core/src/sandbox/mock-sandbox.ts` | 168 | 2 | `MockSandboxOptions` |
 | `packages/core/src/matchers/tier2/index.ts` | 168 | 5 | `toContain` |
 | `packages/vitest/src/run-skill.ts` | 161 | 2 | `runSkill` |
-| `packages/core/src/sandbox/mock-sandbox.ts` | 154 | 2 | `MockSandboxOptions` |
-| `packages/core/src/driver/registry.ts` | 152 | 1 | `DriverRegistry` |
 | `packages/promptfoo/src/provider.ts` | 149 | 3 | `ToolMockConfig` |
+| `packages/core/src/driver/registry.ts` | 149 | 1 | `DriverRegistry` |
 | `packages/mcp-server/src/index.ts` | 143 | 0 | `—` |
 | `packages/cli/src/commands/capture.ts` | 142 | 1 | `capture` |
 | `packages/core/src/cassette/diff.ts` | 140 | 6 | `diffCassettes` |
 | `packages/core/src/sandbox/container/docker-client.ts` | 135 | 2 | `detectRuntime` |
-| `packages/core/src/matchers/tier3/index.ts` | 131 | 10 | `toBeSemanticallySimilar` |
+| `packages/core/src/matchers/tier3/index.ts` | 132 | 10 | `toBeSemanticallySimilar` |
 | `packages/cli/src/index.ts` | 122 | 1 | `createProgram` |
 | `packages/cli/src/commands/diff.ts` | 121 | 1 | `diff` |
 | `packages/core/src/capture/analyzer.ts` | 113 | 3 | `analyzeTrace` |
@@ -101,7 +101,7 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/core/src/cache/run-manifest.ts` | 63 | 3 | `computeManifest` |
 | `packages/mcp-server/src/tools/schemas.ts` | 61 | 6 | `runSchema` |
 | `packages/core/src/mcp/connect.ts` | 58 | 2 | `connectMcp` |
-| `packages/core/src/redaction/pipeline.ts` | 58 | 1 | `RedactionPipeline` |
+| `packages/core/src/redaction/pipeline.ts` | 57 | 1 | `RedactionPipeline` |
 | `packages/core/src/driver/resolve.ts` | 56 | 3 | `getDefaultModel` |
 | `packages/core/src/audit/engine.ts` | 55 | 1 | `AuditEngine` |
 | `packages/core/src/cassette/types.ts` | 55 | 5 | `Cassette` |
@@ -133,6 +133,7 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/vitest/src/plugin.ts` | 24 | 1 | `tracepactPlugin` |
 | `packages/core/src/trace/types.ts` | 24 | 4 | `ToolTrace` |
 | `packages/core/src/matchers/types.ts` | 22 | 2 | `MatcherResult` |
+| `packages/core/src/sandbox/index.ts` | 20 | 15 | `Sandbox` |
 | `packages/core/src/matchers/tier3/cosine.ts` | 20 | 1 | `cosineSimilarity` |
 | `packages/core/src/sandbox/process/types.ts` | 19 | 1 | `ProcessSandboxConfig` |
 | `packages/vitest/src/annotations.ts` | 16 | 2 | `expensive` |
@@ -140,7 +141,6 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/core/src/errors/parse-error.ts` | 15 | 1 | `SkillParseError` |
 | `packages/core/src/tools/types.ts` | 15 | 3 | `ToolDefs` |
 | `packages/core/src/redaction/builtin-rules.ts` | 13 | 1 | `BUILTIN_RULES` |
-| `packages/core/src/sandbox/index.ts` | 13 | 15 | `Sandbox` |
 | `packages/core/src/sandbox/container/index.ts` | 13 | 6 | `createContainerTools` |
 | `packages/core/src/cassette/index.ts` | 12 | 11 | `Cassette` |
 | `packages/core/src/errors/config-error.ts` | 12 | 1 | `ConfigError` |
@@ -155,5 +155,5 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/core/src/driver/mock-driver.ts` | 4 | 0 | `—` |
 | `packages/core/src/sandbox/mcp/index.ts` | 3 | 4 | `McpMockServer` |
 
-**Total:** 119 files, 10912 lines
+**Total:** 119 files, 10956 lines
 <!-- END:GENERATED -->
