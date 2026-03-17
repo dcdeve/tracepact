@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 
 interface RunOptions {
@@ -48,7 +48,7 @@ export async function runTests(opts: RunOptions, passthroughArgs: string[] = [])
   const vitestArgs = ['vitest', 'run', '--config', configPath, ...passthroughArgs];
 
   try {
-    execSync(`npx ${vitestArgs.join(' ')}`, { stdio: 'inherit', env });
+    execFileSync('npx', vitestArgs, { stdio: 'inherit', env });
   } catch (err: any) {
     process.exitCode = err.status ?? 1;
   }
