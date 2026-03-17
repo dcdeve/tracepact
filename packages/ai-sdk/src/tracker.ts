@@ -54,7 +54,8 @@ export class Tracker {
       if (part.type === 'tool-call') {
         let args: Record<string, unknown>;
         try {
-          args = JSON.parse(part.input) as Record<string, unknown>;
+          const parsed = JSON.parse(part.input);
+          args = typeof parsed === 'object' && parsed !== null ? parsed : {};
         } catch {
           args = {};
         }

@@ -107,7 +107,8 @@ export function contentToAssistantMessage(content: LanguageModelV3Content[]): Me
     } else if (part.type === 'tool-call') {
       let input: Record<string, unknown>;
       try {
-        input = JSON.parse(part.input) as Record<string, unknown>;
+        const parsed = JSON.parse(part.input);
+        input = typeof parsed === 'object' && parsed !== null ? parsed : {};
       } catch {
         input = {};
       }
