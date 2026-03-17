@@ -48,7 +48,7 @@ interface OpenAIStreamChunk {
 interface OpenAIClient {
   chat: {
     completions: {
-      create(params: Record<string, unknown>): Promise<unknown>;
+      create(params: Record<string, unknown>, options?: { signal?: AbortSignal }): Promise<unknown>;
     };
   };
 }
@@ -61,6 +61,7 @@ export class OpenAIDriver implements AgentDriver {
     streaming: true,
     systemPromptRole: true,
     maxContextWindow: 128_000,
+    contentBlockConversation: false,
   };
 
   private client: OpenAIClient | null = null;
@@ -131,6 +132,15 @@ export class OpenAIDriver implements AgentDriver {
     const startTime = performance.now();
     const temp = input.config?.temperature ?? DEFAULT_TEMPERATURE;
     const maxIter = input.config?.maxToolIterations ?? DEFAULT_MAX_TOOL_ITERATIONS;
+    const timeoutMs = input.config?.timeout;
+
+    let abortController: AbortController | undefined;
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    if (timeoutMs !== undefined) {
+      abortController = new AbortController();
+      timeoutHandle = setTimeout(() => abortController?.abort(), timeoutMs);
+    }
+    const signal = abortController?.signal;
 
     const systemPrompt = 'hash' in input.skill ? input.skill.body : input.skill.systemPrompt;
 
@@ -150,8 +160,10 @@ export class OpenAIDriver implements AgentDriver {
         if (msg.role === 'system') continue;
         if (Array.isArray(msg.content)) {
           throw new DriverError(
-            'OpenAI driver does not support ContentBlock[] in conversation messages. ' +
-              'Only string content is supported for multi-turn resumption with OpenAI.'
+            'OpenAI driver does not support ContentBlock[] in conversation messages ' +
+              '(capabilities.contentBlockConversation is false). ' +
+              'Only string content is supported. Use AnthropicDriver if you need to resume ' +
+              'conversations that contain tool_use/tool_result blocks.'
           );
         }
         messages.push({ role: msg.role, content: msg.content });
@@ -168,112 +180,134 @@ export class OpenAIDriver implements AgentDriver {
     const useStream = input.config?.stream === true;
     const onChunk = input.config?.onChunk;
 
-    while (iterations < maxIter) {
-      if (useStream) {
-        // Streaming mode
-        const result = await this.runStreaming(
-          client,
-          messages,
-          apiTools,
-          temp,
-          input.config?.maxTokens ?? 4096,
-          input.config?.seed,
-          onChunk
-        );
+    try {
+      while (iterations < maxIter) {
+        if (useStream) {
+          // Streaming mode
+          const streamStart = performance.now();
+          const result = await this.runStreaming(
+            client,
+            messages,
+            apiTools,
+            temp,
+            input.config?.maxTokens ?? 4096,
+            input.config?.seed,
+            onChunk,
+            signal
+          );
+          log.debug(
+            `OpenAIDriver: iteration ${iterations} stream took ${(performance.now() - streamStart).toFixed(1)}ms`
+          );
 
-        totalInputTokens += result.inputTokens;
-        totalOutputTokens += result.outputTokens;
+          totalInputTokens += result.inputTokens;
+          totalOutputTokens += result.outputTokens;
 
-        if (result.content) {
-          finalOutput += result.content;
+          if (result.content) {
+            finalOutput += result.content;
+          }
+
+          if (!result.toolCalls || result.toolCalls.length === 0) {
+            break;
+          }
+
+          messages.push({
+            role: 'assistant',
+            content: result.content || null,
+            tool_calls: result.toolCalls,
+          });
+
+          await this.executeToolCalls(result.toolCalls, input.sandbox, messages);
+        } else {
+          // Non-streaming mode (original)
+          const llmStart = performance.now();
+          const response = (await this.semaphore.run(() =>
+            this.retry.execute(() =>
+              client.chat.completions.create(
+                {
+                  model: this.model,
+                  temperature: temp,
+                  max_tokens: input.config?.maxTokens ?? 4096,
+                  seed: input.config?.seed,
+                  messages,
+                  tools: apiTools.length > 0 ? apiTools : undefined,
+                },
+                signal !== undefined ? { signal } : {}
+              )
+            )
+          )) as OpenAIChatCompletion;
+          log.debug(
+            `OpenAIDriver: iteration ${iterations} llm call took ${(performance.now() - llmStart).toFixed(1)}ms`
+          );
+
+          totalInputTokens += response.usage?.prompt_tokens ?? 0;
+          totalOutputTokens += response.usage?.completion_tokens ?? 0;
+
+          const choice = response.choices[0];
+          if (!choice) {
+            throw new DriverError('OpenAI returned empty choices array.');
+          }
+
+          const msg = choice.message;
+
+          if (msg.content) {
+            finalOutput += msg.content;
+          }
+
+          if (!msg.tool_calls || msg.tool_calls.length === 0) {
+            break;
+          }
+
+          messages.push(msg);
+
+          await this.executeToolCalls(msg.tool_calls, input.sandbox, messages);
         }
 
-        if (!result.toolCalls || result.toolCalls.length === 0) {
-          break;
-        }
-
-        messages.push({
-          role: 'assistant',
-          content: result.content || null,
-          tool_calls: result.toolCalls,
-        });
-
-        await this.executeToolCalls(result.toolCalls, input.sandbox, messages);
-      } else {
-        // Non-streaming mode (original)
-        const response = (await this.semaphore.run(() =>
-          this.retry.execute(() =>
-            client.chat.completions.create({
-              model: this.model,
-              temperature: temp,
-              max_tokens: input.config?.maxTokens ?? 4096,
-              seed: input.config?.seed,
-              messages,
-              tools: apiTools.length > 0 ? apiTools : undefined,
-            })
-          )
-        )) as OpenAIChatCompletion;
-
-        totalInputTokens += response.usage?.prompt_tokens ?? 0;
-        totalOutputTokens += response.usage?.completion_tokens ?? 0;
-
-        const choice = response.choices[0];
-        if (!choice) {
-          throw new DriverError('OpenAI returned empty choices array.');
-        }
-
-        const msg = choice.message;
-
-        if (msg.content) {
-          finalOutput += msg.content;
-        }
-
-        if (!msg.tool_calls || msg.tool_calls.length === 0) {
-          break;
-        }
-
-        messages.push(msg);
-
-        await this.executeToolCalls(msg.tool_calls, input.sandbox, messages);
+        iterations++;
       }
 
-      iterations++;
-    }
+      if (iterations >= maxIter) {
+        throw new DriverError(`Agent exceeded max tool iterations (${maxIter}).`);
+      }
 
-    if (iterations >= maxIter) {
-      throw new DriverError(`Agent exceeded max tool iterations (${maxIter}).`);
-    }
+      const duration = performance.now() - startTime;
+      const trace = input.sandbox.getTrace();
 
-    const duration = performance.now() - startTime;
-    const trace = input.sandbox.getTrace();
-
-    const manifestParams: Parameters<typeof computeManifest>[0] = {
-      skill: input.skill,
-      prompt: input.prompt,
-      tools: input.tools ?? [],
-      provider: this.name,
-      model: this.model,
-      temperature: temp,
-      frameworkVersion: '__VERSION__',
-      driverVersion: '__VERSION__',
-    };
-    if (input.config?.seed !== undefined) {
-      manifestParams.seed = input.config.seed;
-    }
-    const manifest = computeManifest(manifestParams);
-
-    return {
-      output: finalOutput,
-      trace,
-      messages: messages as import('./types.js').Message[],
-      usage: {
-        inputTokens: totalInputTokens,
-        outputTokens: totalOutputTokens,
+      const manifestParams: Parameters<typeof computeManifest>[0] = {
+        skill: input.skill,
+        prompt: input.prompt,
+        tools: input.tools ?? [],
+        provider: this.name,
         model: this.model,
-      },
-      duration,
-      runManifest: manifest,
-    };
+        temperature: temp,
+        frameworkVersion: '__VERSION__',
+        driverVersion: '__VERSION__',
+      };
+      if (input.config?.seed !== undefined) {
+        manifestParams.seed = input.config.seed;
+      }
+      const manifest = computeManifest(manifestParams);
+
+      return {
+        output: finalOutput,
+        trace,
+        messages: messages as import('./types.js').Message[],
+        usage: {
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+          model: this.model,
+        },
+        duration,
+        runManifest: manifest,
+        cacheStatus: 'miss',
+      };
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || signal?.aborted) {
+        throw new DriverError(`Run timed out after ${timeoutMs}ms.`);
+      }
+      throw err;
+    } finally {
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+    }
   }
 
   private async executeToolCalls(
@@ -297,7 +331,11 @@ export class OpenAIDriver implements AgentDriver {
         );
       }
 
+      const toolStart = performance.now();
       const result = await sandbox.executeTool(fnName, fnArgs);
+      log.debug(
+        `OpenAIDriver: tool "${fnName}" took ${(performance.now() - toolStart).toFixed(1)}ms`
+      );
 
       messages.push({
         role: 'tool',
@@ -314,7 +352,8 @@ export class OpenAIDriver implements AgentDriver {
     temperature: number,
     maxTokens: number,
     seed?: number,
-    onChunk?: (chunk: string) => void
+    onChunk?: (chunk: string) => void,
+    signal?: AbortSignal
   ): Promise<{
     content: string;
     toolCalls: Array<{
@@ -327,16 +366,19 @@ export class OpenAIDriver implements AgentDriver {
   }> {
     const stream = (await this.semaphore.run(() =>
       this.retry.execute(() =>
-        client.chat.completions.create({
-          model: this.model,
-          temperature,
-          max_tokens: maxTokens,
-          seed,
-          messages,
-          tools: apiTools.length > 0 ? apiTools : undefined,
-          stream: true,
-          stream_options: { include_usage: true },
-        })
+        client.chat.completions.create(
+          {
+            model: this.model,
+            temperature,
+            max_tokens: maxTokens,
+            seed,
+            messages,
+            tools: apiTools.length > 0 ? apiTools : undefined,
+            stream: true,
+            stream_options: { include_usage: true },
+          },
+          signal !== undefined ? { signal } : {}
+        )
       )
     )) as AsyncIterable<OpenAIStreamChunk>;
 
@@ -348,36 +390,43 @@ export class OpenAIDriver implements AgentDriver {
     let inputTokens = 0;
     let outputTokens = 0;
 
-    for await (const chunk of stream) {
-      const delta = chunk.choices?.[0]?.delta;
+    try {
+      for await (const chunk of stream) {
+        const delta = chunk.choices?.[0]?.delta;
 
-      if (delta?.content) {
-        content += delta.content;
-        if (onChunk) onChunk(delta.content);
-      }
+        if (delta?.content) {
+          content += delta.content;
+          if (onChunk) onChunk(delta.content);
+        }
 
-      if (delta?.tool_calls) {
-        for (const tc of delta.tool_calls) {
-          const idx = tc.index ?? 0;
-          if (!toolCallMap.has(idx)) {
-            toolCallMap.set(idx, {
-              id: tc.id ?? '',
-              type: 'function' as const,
-              function: { name: tc.function?.name ?? '', arguments: '' },
-            });
+        if (delta?.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index ?? 0;
+            if (!toolCallMap.has(idx)) {
+              toolCallMap.set(idx, {
+                id: tc.id ?? '',
+                type: 'function' as const,
+                function: { name: tc.function?.name ?? '', arguments: '' },
+              });
+            }
+            const existing = toolCallMap.get(idx);
+            if (!existing) continue;
+            if (tc.id) existing.id = tc.id;
+            if (tc.function?.name) existing.function.name = tc.function.name;
+            if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
           }
-          const existing = toolCallMap.get(idx);
-          if (!existing) continue;
-          if (tc.id) existing.id = tc.id;
-          if (tc.function?.name) existing.function.name = tc.function.name;
-          if (tc.function?.arguments) existing.function.arguments += tc.function.arguments;
+        }
+
+        if (chunk.usage) {
+          inputTokens = chunk.usage.prompt_tokens ?? 0;
+          outputTokens = chunk.usage.completion_tokens ?? 0;
         }
       }
-
-      if (chunk.usage) {
-        inputTokens = chunk.usage.prompt_tokens ?? 0;
-        outputTokens = chunk.usage.completion_tokens ?? 0;
-      }
+    } catch (streamErr: any) {
+      log.warn(
+        `OpenAIDriver: stream interrupted. contentBytes=${content.length}, toolCallsInProgress=${toolCallMap.size}, Error: ${streamErr?.message ?? streamErr}`
+      );
+      throw streamErr;
     }
 
     const toolCalls = [...toolCallMap.values()];
@@ -387,12 +436,22 @@ export class OpenAIDriver implements AgentDriver {
   async healthCheck(): Promise<HealthCheckResult> {
     const client = await this.getClient();
     const start = performance.now();
+    const HEALTH_CHECK_TIMEOUT_MS = 5_000;
     try {
-      const response = (await client.chat.completions.create({
-        model: this.model,
-        max_tokens: 1,
-        messages: [{ role: 'user', content: 'ping' }],
-      })) as OpenAIChatCompletion;
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`healthCheck timed out after ${HEALTH_CHECK_TIMEOUT_MS}ms`)),
+          HEALTH_CHECK_TIMEOUT_MS
+        )
+      );
+      const response = (await Promise.race([
+        client.chat.completions.create({
+          model: this.model,
+          max_tokens: 1,
+          messages: [{ role: 'user', content: 'ping' }],
+        }),
+        timeout,
+      ])) as OpenAIChatCompletion;
       const modelVersion = response.system_fingerprint ?? undefined;
       return {
         ok: true,

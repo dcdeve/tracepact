@@ -11,6 +11,7 @@ function createMockDriver(response: string): AgentDriver {
       streaming: false,
       systemPromptRole: true,
       maxContextWindow: 128_000,
+      contentBlockConversation: false,
     },
     async run(_input: RunInput): Promise<RunResult> {
       return {

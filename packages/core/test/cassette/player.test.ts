@@ -94,7 +94,7 @@ describe('CassettePlayer', () => {
     await writeFile(filePath, JSON.stringify(cassette));
 
     const player = new CassettePlayer(filePath);
-    await expect(player.replay()).rejects.toThrow('Unsupported cassette version');
+    await expect(player.replay()).rejects.toThrow('is newer than this library supports');
   });
 
   it('throws on missing file', async () => {

@@ -16,6 +16,15 @@ import {
 } from '@tracepact/core';
 import { trackUsage } from './token-tracker.js';
 
+/** MCP connections registered during the current test, to be closed in afterEach. */
+const _pendingMcpConnections: McpConnection[] = [];
+
+/** @internal Called by setup.ts afterEach to drain and close all registered connections. */
+export async function _closePendingMcpConnections(): Promise<void> {
+  const conns = _pendingMcpConnections.splice(0);
+  await Promise.all(conns.map((c) => c.close()));
+}
+
 export interface RunSkillOptions {
   prompt: string;
   sandbox?: MockSandbox;
@@ -73,6 +82,8 @@ export async function runSkill(
     const merged = buildMcpSandbox(input.mcp, tools);
     sandbox = merged.sandbox;
     tools = merged.tools;
+    // Register connections so setup.ts afterEach can close them
+    _pendingMcpConnections.push(...input.mcp);
   }
 
   // Resolve replay path from env if not explicitly provided
@@ -85,7 +96,7 @@ export async function runSkill(
     typeof input.record === 'string'
       ? input.record
       : shouldRecord
-        ? generateCassettePath(input.prompt)
+        ? generateCassettePath(input.prompt, tools)
         : undefined;
 
   // Replay mode or live mode: delegate to executePrompt
@@ -125,6 +136,19 @@ export async function runSkill(
     );
   }
   const fallbackSandbox = sandbox ?? new MockSandbox({});
+
+  // Compute real content hashes even in mock mode so the runManifest is unique per input.
+  const mockSkillHash =
+    typeof skill === 'string'
+      ? createHash('sha256').update(skill).digest('hex')
+      : 'hash' in skill
+        ? skill.hash
+        : createHash('sha256').update(skill.systemPrompt).digest('hex');
+  const mockPromptHash = createHash('sha256').update(input.prompt).digest('hex');
+  const mockToolDefsHash = createHash('sha256')
+    .update(JSON.stringify((tools ?? []).map((t) => ({ name: t.name, schema: t.jsonSchema }))))
+    .digest('hex');
+
   return {
     output: '',
     trace: fallbackSandbox.getTrace(),
@@ -132,29 +156,42 @@ export async function runSkill(
     usage: { inputTokens: 0, outputTokens: 0, model: 'mock' },
     duration: 0,
     runManifest: {
-      skillHash: '',
-      promptHash: '',
-      toolDefsHash: '',
+      skillHash: mockSkillHash,
+      promptHash: mockPromptHash,
+      toolDefsHash: mockToolDefsHash,
       provider: 'mock',
       model: 'mock',
       temperature: 0,
       frameworkVersion: 'mock',
       driverVersion: 'mock',
     },
+    cacheStatus: 'skipped',
   };
 }
 
 /**
- * Generate a deterministic cassette file path from the prompt.
+ * Generate a deterministic cassette file path from the prompt and tool names.
+ * Including tool names prevents collisions when two tests share the same prompt
+ * but differ in their tool definitions.
  * Produces: ./cassettes/<slug>-<hash>.json
  */
-function generateCassettePath(prompt: string): string {
+function generateCassettePath(prompt: string, tools?: TypedToolDefinition[]): string {
   const slug = prompt
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 40);
-  const hash = createHash('sha256').update(prompt).digest('hex').slice(0, 8);
+  const toolNames =
+    tools
+      ?.map((t) => t.name)
+      .sort()
+      .join(',') ?? '';
+  const hash = createHash('sha256')
+    .update(prompt)
+    .update('\0')
+    .update(toolNames)
+    .digest('hex')
+    .slice(0, 8);
   const dir = process.env.TRACEPACT_CASSETTE_DIR ?? 'cassettes';
   return join(dir, `${slug}-${hash}.json`);
 }

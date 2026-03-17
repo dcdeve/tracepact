@@ -31,6 +31,10 @@ function registerDriver(name: string, DriverClass: DriverConstructor): void {
   NATIVE_DRIVERS[name] = DriverClass;
 }
 
+function unregisterDriver(name: string): void {
+  delete NATIVE_DRIVERS[name];
+}
+
 function createDriver(name: string, config: ProviderConfig): AgentDriver {
   // Resolve API key: explicit config > env var for this provider > env var fallback
   const envKey = PROVIDER_ENV_KEYS[name];
@@ -78,6 +82,10 @@ export class DriverRegistry {
    */
   static register(name: string, DriverClass: DriverConstructor): void {
     registerDriver(name, DriverClass);
+  }
+
+  static unregister(name: string): void {
+    unregisterDriver(name);
   }
 
   private drivers = new Map<string, AgentDriver>();

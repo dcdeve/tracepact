@@ -41,6 +41,8 @@ export interface CacheConfig {
   dir: string;
   ttlSeconds: number;
   verifyOnRead: boolean;
+  /** Maximum serialized size of a single cache entry in bytes. Writes exceeding this limit are skipped with a warning. Default: no limit. */
+  maxEntrySizeBytes?: number;
 }
 
 export interface RedactionConfig {

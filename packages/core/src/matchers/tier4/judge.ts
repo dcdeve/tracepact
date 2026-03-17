@@ -12,6 +12,8 @@ export interface JudgeConfig {
   consensus?: number;
   temperature?: number;
   maxTokens?: number;
+  /** Timeout in milliseconds for a single judge LLM call. */
+  timeout?: number;
 }
 
 export interface JudgeVote {
@@ -30,6 +32,8 @@ export interface JudgeResult {
   tokens: number;
   votes: JudgeVote[];
   consensus: { passed: number; failed: number; total: number };
+  /** Errors from individual voters that failed, if any. Only present when at least one voter errored. */
+  voterErrors?: string[];
 }
 
 function extractFirstValidJson(text: string): string | null {
@@ -86,17 +90,31 @@ export class JudgeExecutor {
     const calibration = await this.resolveCalibration(config.calibration);
     const prompt = buildJudgePrompt(output, config.criteria, calibration);
 
+    const voterErrors: string[] = [];
+
     for (let i = 0; i < consensusCount; i++) {
-      const vote = await this.singleJudge(prompt, {
-        temperature: config.temperature ?? (consensusCount > 1 ? 0.3 : 0),
-        maxTokens: config.maxTokens ?? 1024,
-      });
-      votes.push(vote);
+      try {
+        const vote = await this.singleJudge(prompt, {
+          temperature: config.temperature ?? (consensusCount > 1 ? 0.3 : 0),
+          maxTokens: config.maxTokens ?? 1024,
+          ...(config.timeout !== undefined ? { timeout: config.timeout } : {}),
+        });
+        votes.push(vote);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        log.warn(`Judge voter ${i + 1}/${consensusCount} failed: ${message}`);
+        voterErrors.push(message);
+      }
+    }
+
+    if (votes.length === 0) {
+      const combined = voterErrors.join('; ');
+      throw new Error(`All ${consensusCount} judge voter(s) failed: ${combined}`);
     }
 
     const passed = votes.filter((v) => v.pass).length;
     const totalTokens = votes.reduce((sum, v) => sum + v.tokens, 0);
-    const majorityPass = passed > consensusCount / 2;
+    const majorityPass = passed > votes.length / 2;
 
     const bestVote = votes.reduce((best, v) => (v.confidence > best.confidence ? v : best));
 
@@ -107,13 +125,14 @@ export class JudgeExecutor {
       reasoning: bestVote.reasoning,
       tokens: totalTokens,
       votes,
-      consensus: { passed, failed: consensusCount - passed, total: consensusCount },
+      consensus: { passed, failed: votes.length - passed, total: votes.length },
+      ...(voterErrors.length > 0 ? { voterErrors } : {}),
     };
   }
 
   private async singleJudge(
     prompt: string,
-    config: { temperature: number; maxTokens: number }
+    config: { temperature: number; maxTokens: number; timeout?: number }
   ): Promise<JudgeVote> {
     const sandbox = new MockSandbox({});
 
@@ -126,7 +145,11 @@ export class JudgeExecutor {
         },
         prompt,
         sandbox,
-        config: { temperature: config.temperature, maxTokens: config.maxTokens },
+        config: {
+          ...(config.temperature !== undefined ? { temperature: config.temperature } : {}),
+          ...(config.maxTokens !== undefined ? { maxTokens: config.maxTokens } : {}),
+          ...(config.timeout !== undefined ? { timeout: config.timeout } : {}),
+        },
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -137,14 +160,7 @@ export class JudgeExecutor {
     const rawCandidate = fenceMatch ? (fenceMatch[1] ?? '') : extractFirstValidJson(result.output);
 
     if (rawCandidate === null) {
-      log.warn('Judge returned non-JSON response. Treating as fail.');
-      return {
-        pass: false,
-        confidence: 0,
-        justification: 'Judge response could not be parsed.',
-        reasoning: result.output,
-        tokens: result.usage.inputTokens + result.usage.outputTokens,
-      };
+      throw new Error(`Judge parse error: no JSON found in response. Raw output: ${result.output}`);
     }
 
     try {
@@ -157,14 +173,9 @@ export class JudgeExecutor {
         tokens: result.usage.inputTokens + result.usage.outputTokens,
       };
     } catch {
-      log.warn(`Judge returned malformed JSON. Extracted text: ${rawCandidate}. Treating as fail.`);
-      return {
-        pass: false,
-        confidence: 0,
-        justification: 'Malformed JSON from judge.',
-        reasoning: result.output,
-        tokens: result.usage.inputTokens + result.usage.outputTokens,
-      };
+      throw new Error(
+        `Judge parse error: malformed JSON extracted from response. Extracted: ${rawCandidate}. Raw output: ${result.output}`
+      );
     }
   }
 

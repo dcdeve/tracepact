@@ -12,6 +12,7 @@ function createMockDriver(responses: string[]): AgentDriver {
       streaming: false,
       systemPromptRole: true,
       maxContextWindow: 128_000,
+      contentBlockConversation: false,
     },
     async run(_input: RunInput): Promise<RunResult> {
       const output = responses[callIndex] ?? responses[responses.length - 1];
@@ -91,10 +92,9 @@ describe('JudgeExecutor', () => {
   it('handles malformed JSON response', async () => {
     const driver = createMockDriver(['This is just prose with no JSON.']);
     const executor = new JudgeExecutor(driver);
-    const result = await executor.evaluate('output', { criteria: 'test' });
-
-    expect(result.pass).toBe(false);
-    expect(result.votes[0].justification).toContain('could not be parsed');
+    await expect(executor.evaluate('output', { criteria: 'test' })).rejects.toThrow(
+      'judge voter(s) failed'
+    );
   });
 
   it('clamps confidence to [0, 1]', async () => {

@@ -7,6 +7,7 @@ import type { TracepactConfig } from '../config/types.js';
 import { log } from '../logger.js';
 import { parseSkill } from '../parser/skill-parser.js';
 import type { ParsedSkill } from '../parser/types.js';
+import { RedactionPipeline } from '../redaction/pipeline.js';
 import { MockSandbox } from '../sandbox/mock-sandbox.js';
 import type { TypedToolDefinition } from '../tools/types.js';
 import { DriverRegistry } from './registry.js';
@@ -68,7 +69,19 @@ export async function executePrompt(
   // 3. Replay mode
   if (opts.replay) {
     const player = new CassettePlayer(opts.replay, opts.stubs, opts.replayStrict ?? true);
-    return player.replay(opts.prompt);
+    const replayToolDefsHash =
+      opts.tools !== undefined
+        ? createHash('sha256')
+            .update(
+              stableStringify(
+                [...opts.tools]
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((t) => ({ name: t.name, schema: t.jsonSchema }))
+              )
+            )
+            .digest('hex')
+        : undefined;
+    return player.replay(opts.prompt, replayToolDefsHash);
   }
 
   // 4. Execute via driver
@@ -79,6 +92,7 @@ export async function executePrompt(
   let registry = cacheKey !== null ? _registryCache.get(cacheKey) : undefined;
   if (!registry) {
     registry = new DriverRegistry(config);
+    registry.validateAll();
     if (cacheKey !== null) _registryCache.set(cacheKey, registry);
   }
   const driver = registry.get(providerName);
@@ -120,8 +134,10 @@ export async function executePrompt(
       promptHash: createHash('sha256').update(opts.prompt).digest('hex'),
       toolDefsHash: createHash('sha256')
         .update(
-          JSON.stringify(
-            (opts.tools ?? []).map((t) => ({ name: t.name, schema: (t as any).jsonSchema }))
+          stableStringify(
+            [...(opts.tools ?? [])]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((t) => ({ name: t.name, schema: t.jsonSchema }))
           )
         )
         .digest('hex'),
@@ -139,19 +155,24 @@ export async function executePrompt(
   );
 
   if (cachedEntry) {
-    return cachedEntry.result as RunResult;
+    return { ...(cachedEntry.result as RunResult), cacheStatus: 'hit' };
   }
 
   const result = await driver.run(runInput);
 
   // 4b. Populate cache with the actual manifest produced by the driver.
   await cache.set(result.runManifest, result);
-  const cacheStatus: RunResult['cacheStatus'] = cache.writeFailures > 0 ? 'failed' : 'ok';
-  if (cacheStatus === 'failed') {
+  let cacheStatus: RunResult['cacheStatus'];
+  if (!cacheConfig.enabled) {
+    cacheStatus = 'skipped';
+  } else if (cache.writeFailures > 0) {
+    cacheStatus = 'failed';
     log.warn(
       `Cache: ${cache.writeFailures} write failure(s) during this run. ` +
         `All cache entries were lost. Check that "${config.cache.dir}" is writable.`
     );
+  } else {
+    cacheStatus = 'miss';
   }
   const resultWithCacheStatus: RunResult = { ...result, cacheStatus };
 
@@ -172,7 +193,20 @@ export async function executePrompt(
     });
   }
 
-  return resultWithCacheStatus;
+  // 6. Redact the result before returning to the caller so that secrets never
+  //    leak through console.log, telemetry export, or other caller-side handling.
+  const redaction = new RedactionPipeline(config.redaction);
+  return redaction.redactObject(resultWithCacheStatus);
+}
+
+/** JSON.stringify with sorted keys at every level — produces a stable output regardless of insertion order. */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  const sorted = Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`);
+  return `{${sorted.join(',')}}`;
 }
 
 function computeSkillHash(skill: ParsedSkill | { systemPrompt: string }): string {

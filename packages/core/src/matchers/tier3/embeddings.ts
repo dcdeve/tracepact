@@ -5,18 +5,20 @@ export interface EmbeddingProvider {
 }
 
 export class OpenAIEmbeddingProvider implements EmbeddingProvider {
-  readonly model = 'text-embedding-3-small';
-  readonly dimensions = 1536;
+  readonly model: string;
+  readonly dimensions: number;
 
   private client: any = null;
   private apiKey: string;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, model = 'text-embedding-3-small', dimensions = 1536) {
     const key = apiKey ?? process.env.OPENAI_API_KEY;
     if (!key) {
       throw new Error('OPENAI_API_KEY required for semantic assertions (Tier 3).');
     }
     this.apiKey = key;
+    this.model = model;
+    this.dimensions = dimensions;
   }
 
   private async getClient(): Promise<any> {

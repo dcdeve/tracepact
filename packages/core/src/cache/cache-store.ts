@@ -28,6 +28,7 @@ export class CacheStore {
   private readonly dir: string;
   private readonly ttlSeconds: number;
   private readonly verifyOnRead: boolean;
+  private readonly maxEntrySizeBytes: number | undefined;
   private readonly redaction: RedactionPipeline;
   private _writeFailures = 0;
 
@@ -36,6 +37,7 @@ export class CacheStore {
     this.dir = config.dir;
     this.ttlSeconds = config.ttlSeconds;
     this.verifyOnRead = config.verifyOnRead;
+    this.maxEntrySizeBytes = config.maxEntrySizeBytes;
     this.redaction = new RedactionPipeline(redactionConfig);
   }
 
@@ -102,10 +104,18 @@ export class CacheStore {
 
     const finalPath = this.filePath(hash);
     const tmpPath = `${finalPath}.tmp`;
+    const serialized = JSON.stringify(entry, null, 2);
+
+    if (this.maxEntrySizeBytes !== undefined && serialized.length > this.maxEntrySizeBytes) {
+      log.warn(
+        `Cache: entry ${hash} exceeds maxEntrySizeBytes (${serialized.length} > ${this.maxEntrySizeBytes}), skipping write.`
+      );
+      return;
+    }
 
     try {
       await mkdir(this.dir, { recursive: true });
-      await writeFile(tmpPath, JSON.stringify(entry, null, 2), { mode: 0o600 });
+      await writeFile(tmpPath, serialized, { mode: 0o600 });
       await rename(tmpPath, finalPath);
       log.info(`Cache: stored ${hash}.`);
     } catch (err: any) {
@@ -113,8 +123,8 @@ export class CacheStore {
       log.warn(`Cache: write failed: ${err.message}. Continuing without cache.`);
       try {
         await this.deleteFile(tmpPath);
-      } catch {
-        /* ignore */
+      } catch (cleanupErr: any) {
+        log.warn(`Cache: failed to delete tmp file ${tmpPath}: ${cleanupErr.message}`);
       }
     }
   }

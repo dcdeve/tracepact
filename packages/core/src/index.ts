@@ -251,4 +251,4 @@ export { ConfigError } from './errors/config-error.js';
 export { DriverError } from './errors/driver-error.js';
 
 // Logger
-export { log, setLogLevel, withLogLevel } from './logger.js';
+export { log, setLogLevel, withLogLevel, initLogLevelFromEnv } from './logger.js';

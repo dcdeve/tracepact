@@ -9,10 +9,12 @@ import type { Cassette, CassetteMetadata } from './types.js';
 export class CassetteRecorder {
   private filePath: string;
   private readonly redaction: RedactionPipeline;
+  private readonly maxEntrySizeBytes: number | undefined;
 
-  constructor(filePath: string, redactionConfig?: RedactionConfig) {
+  constructor(filePath: string, redactionConfig?: RedactionConfig, maxEntrySizeBytes?: number) {
     this.filePath = filePath;
     this.redaction = new RedactionPipeline(redactionConfig);
+    this.maxEntrySizeBytes = maxEntrySizeBytes;
   }
 
   async save(result: RunResult, metadata: CassetteMetadata): Promise<void> {
@@ -42,8 +44,17 @@ export class CassetteRecorder {
     };
 
     const redactedCassette = this.redaction.redactObject(cassette);
+    const serialized = JSON.stringify(redactedCassette, null, 2);
+
+    if (this.maxEntrySizeBytes !== undefined && serialized.length > this.maxEntrySizeBytes) {
+      log.warn(
+        `Cassette: ${this.filePath} exceeds maxEntrySizeBytes (${serialized.length} > ${this.maxEntrySizeBytes}), skipping write.`
+      );
+      return;
+    }
+
     await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(this.filePath, JSON.stringify(redactedCassette, null, 2), 'utf-8');
+    await writeFile(this.filePath, serialized, 'utf-8');
     log.info(`Cassette saved: ${this.filePath}`);
   }
 }

@@ -10,6 +10,13 @@ export interface DriverCapabilities {
   streaming: boolean;
   systemPromptRole: boolean;
   maxContextWindow: number;
+  /**
+   * Whether the driver accepts `ContentBlock[]` as `Message.content` in
+   * `RunInput.conversation`. When `false`, all conversation messages must use
+   * plain `string` content (e.g. OpenAI). When `true`, the driver natively
+   * handles `ContentBlock[]` (e.g. Anthropic).
+   */
+  contentBlockConversation: boolean;
 }
 
 export interface HealthCheckResult {
@@ -55,9 +62,15 @@ export interface RunResult {
   usage: UsageInfo;
   duration: number;
   runManifest: RunManifest;
-  /** Indicates whether the result was written to cache after a live LLM call.
-   * Absent when the result came from a cache hit or cassette replay. */
-  cacheStatus?: 'ok' | 'failed';
+  /**
+   * Describes how the cache/replay layer handled this result:
+   * - `'miss'`             — live LLM call; result was written to cache successfully.
+   * - `'failed'`           — live LLM call; cache write failed (I/O error, etc.).
+   * - `'skipped'`          — live LLM call; cache is disabled (TRACEPACT_NO_CACHE=1 or config).
+   * - `'hit'`              — result came from the on-disk cache (no LLM call made).
+   * - `'cassette_replay'`  — result came from a cassette file (no LLM call made).
+   */
+  cacheStatus: 'miss' | 'failed' | 'skipped' | 'hit' | 'cassette_replay';
 }
 
 export interface UsageInfo {

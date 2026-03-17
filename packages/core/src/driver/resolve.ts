@@ -1,5 +1,6 @@
 import { defineConfig } from '../config/define-config.js';
 import type { TracepactConfig } from '../config/types.js';
+import { log } from '../logger.js';
 import { SNAPSHOT_PROVIDERS } from '../models/snapshot.js';
 import { PROVIDER_ENV_KEYS } from './presets.js';
 
@@ -20,14 +21,24 @@ export function getDefaultModel(provider: string): string {
  * Priority: TRACEPACT_PROVIDER > first available key in order.
  */
 export function detectProvider(): string {
-  if (process.env.TRACEPACT_PROVIDER) return process.env.TRACEPACT_PROVIDER;
+  if (process.env.TRACEPACT_PROVIDER) {
+    log.debug(
+      'provider detected: %s (reason: TRACEPACT_PROVIDER env var)',
+      process.env.TRACEPACT_PROVIDER
+    );
+    return process.env.TRACEPACT_PROVIDER;
+  }
 
   const candidates = Object.entries(PROVIDER_ENV_KEYS);
 
   for (const [name, envKey] of candidates) {
-    if (process.env[envKey]) return name;
+    if (process.env[envKey]) {
+      log.debug('provider detected: %s (reason: %s env var is set)', name, envKey);
+      return name;
+    }
   }
 
+  log.debug('provider detected: openai (reason: no API key env vars found, using default)');
   return 'openai';
 }
 

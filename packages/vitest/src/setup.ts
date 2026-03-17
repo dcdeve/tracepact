@@ -1,19 +1,26 @@
 import {
   DriverRegistry,
-  PROVIDER_ENV_KEYS,
   clearEmbeddingCache,
   clearRegistryCache,
-  defineConfig,
   detectProvider,
+  initLogLevelFromEnv,
   resetCache,
+  resolveConfig,
 } from '@tracepact/core';
-import { afterAll, beforeEach, expect } from 'vitest';
+
+initLogLevelFromEnv();
+import { afterAll, afterEach, beforeEach, expect } from 'vitest';
 import { tracepactMatchers } from './matchers.js';
+import { _closePendingMcpConnections } from './run-skill.js';
 
 expect.extend(tracepactMatchers);
 
 beforeEach(() => {
   clearEmbeddingCache();
+});
+
+afterEach(async () => {
+  await _closePendingMcpConnections();
 });
 
 afterAll(() => {
@@ -22,31 +29,13 @@ afterAll(() => {
   resetCache();
 });
 
-const DEFAULT_MODELS: Record<string, string> = {
-  openai: 'gpt-4o',
-  claude: 'claude-sonnet-4-5-20250929',
-  anthropic: 'claude-sonnet-4-5-20250929',
-  groq: 'llama-3.3-70b-versatile',
-  deepseek: 'deepseek-chat',
-  mistral: 'mistral-large-latest',
-};
-
 // HealthCheck before suite (live mode only)
 if (process.env.TRACEPACT_LIVE === '1') {
   const providerName = process.env.TRACEPACT_PROVIDER || detectProvider();
   const strict = process.env.TRACEPACT_HEALTH_CHECK_STRICT === '1';
 
   try {
-    const envKey = PROVIDER_ENV_KEYS[providerName];
-    const apiKey = envKey ? process.env[envKey] : undefined;
-    const model = process.env.TRACEPACT_MODEL ?? DEFAULT_MODELS[providerName] ?? 'gpt-4o';
-
-    const providers: { default: string; [k: string]: any } = {
-      default: providerName,
-      [providerName]: { model, ...(apiKey ? { apiKey } : {}) },
-    };
-
-    const config = defineConfig({ providers });
+    const config = resolveConfig(providerName);
     const registry = new DriverRegistry(config);
     registry.validateAll();
     const driver = registry.get(providerName);

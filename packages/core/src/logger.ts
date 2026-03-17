@@ -36,13 +36,13 @@ function shouldLog(level: LogLevel): boolean {
 
 export const log = {
   debug(msg: string, ...args: unknown[]): void {
-    if (shouldLog('debug')) console.error(`[tracepact:debug] ${msg}`, ...args);
+    if (shouldLog('debug')) console.log(`[tracepact:debug] ${msg}`, ...args);
   },
   info(msg: string, ...args: unknown[]): void {
-    if (shouldLog('info')) console.error(`[tracepact:info] ${msg}`, ...args);
+    if (shouldLog('info')) console.log(`[tracepact:info] ${msg}`, ...args);
   },
   warn(msg: string, ...args: unknown[]): void {
-    if (shouldLog('warn')) console.error(`[tracepact:warn] ${msg}`, ...args);
+    if (shouldLog('warn')) console.warn(`[tracepact:warn] ${msg}`, ...args);
   },
   error(msg: string, ...args: unknown[]): void {
     if (shouldLog('error')) console.error(`[tracepact:error] ${msg}`, ...args);

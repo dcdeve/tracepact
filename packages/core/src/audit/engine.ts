@@ -1,3 +1,4 @@
+import { log } from '../logger.js';
 import type { ParsedSkill } from '../parser/types.js';
 import { BUILTIN_RULES } from './rules.js';
 import type { AuditInput, AuditReport, AuditRule } from './types.js';
@@ -27,11 +28,15 @@ export class AuditEngine {
       try {
         return rule.check(input);
       } catch (err) {
+        const stack = err instanceof Error ? err.stack : undefined;
+        log.warn(`AuditEngine: rule "${rule.name}" threw unexpectedly`, stack ?? String(err));
         return [
           {
             rule: rule.name,
-            severity: 'medium' as const,
+            severity: 'high' as const,
             message: `Rule "${rule.name}" threw an unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+            suggestion:
+              'This finding was produced by a rule exception, not a real audit result. Check logs for the full stack trace.',
           },
         ];
       }

@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { version } from '../../package.json';
 import type { ToolCallSource, ToolResult } from '../trace/types.js';
 
@@ -12,6 +13,8 @@ export interface McpClientConfig {
   args?: string[];
   /** Environment variables for the server process */
   env?: Record<string, string>;
+  /** Timeout in ms for each tool call. Defaults to 30 000 ms. */
+  toolCallTimeoutMs?: number;
 }
 
 export interface McpToolInfo {
@@ -71,13 +74,32 @@ export class McpClient {
       throw new Error(`McpClient[${this.server}]: not connected. Call connect() first.`);
     }
 
+    const timeoutMs = this.config.toolCallTimeoutMs ?? 30_000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(new Error(`McpClient[${this.server}]: tool call timed out after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    );
+
     let response: Awaited<ReturnType<typeof this.client.callTool>>;
     try {
-      response = await this.client.callTool({ name, arguments: args });
+      response = await Promise.race([
+        this.client.callTool({ name, arguments: args }),
+        timeoutPromise,
+      ]);
     } catch (err) {
-      this._connected = false;
-      const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`McpClient[${this.server}]: connection lost — ${message}`);
+      const isTransportError = err instanceof McpError && err.code === ErrorCode.ConnectionClosed;
+      if (isTransportError) {
+        this._connected = false;
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(`McpClient[${this.server}]: connection lost — ${message}`);
+      }
+      if (err instanceof Error && err.message.startsWith(`McpClient[${this.server}]:`)) {
+        throw err;
+      }
+      throw err;
     }
 
     if (response.isError) {

@@ -344,7 +344,10 @@ describe('OpenAIDriver', () => {
       });
 
       const createCall = client.chat.completions.create;
-      expect(createCall).toHaveBeenCalledWith(expect.objectContaining({ seed: 42 }));
+      expect(createCall).toHaveBeenCalledWith(
+        expect.objectContaining({ seed: 42 }),
+        expect.anything()
+      );
     });
 
     it('tracks token usage across iterations', async () => {
@@ -432,7 +435,8 @@ describe('OpenAIDriver', () => {
           messages: expect.arrayContaining([
             { role: 'system', content: 'You are a code reviewer.' },
           ]),
-        })
+        }),
+        expect.anything()
       );
     });
   });
