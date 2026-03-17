@@ -33,7 +33,8 @@ import {
   toNotHaveRetrievedDocument,
   toPassJudge,
 } from '@tracepact/core';
-import { globalTokens, trackUsage } from './token-tracker.js';
+import { TokenAccumulator } from '@tracepact/core';
+import { trackUsage } from './token-tracker.js';
 
 function isToolTrace(value: unknown): value is { calls: unknown[]; totalCalls: number } {
   return (
@@ -71,7 +72,13 @@ async function adaptAsyncWithJudgeTokens(result: Promise<MatcherResult>) {
   const resolved = await result;
   const tokens = resolved.diagnostic?.tokens ?? 0;
   if (tokens > 0 && process.env.TRACEPACT_LIVE === '1') {
-    trackUsage(process.env.TRACEPACT_PROVIDER ?? 'unknown', 'judge', tokens, 0, globalTokens);
+    trackUsage(
+      process.env.TRACEPACT_PROVIDER ?? 'unknown',
+      'judge',
+      tokens,
+      0,
+      new TokenAccumulator()
+    );
   }
   return adapt(resolved);
 }
