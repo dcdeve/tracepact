@@ -116,10 +116,12 @@ describe('toNotHaveHallucinated', () => {
     expect(result.diagnostic.received).toBeInstanceOf(Array);
   });
 
-  it('passes when output is too short to check', async () => {
+  it('fails with skipped diagnostic when no checkable sentences found', async () => {
     const trace = makeRagTrace('test', [{ content: 'some doc' }]);
     const result = await toNotHaveHallucinated(trace, 'OK.', 'search', { provider });
-    expect(result.pass).toBe(true);
+    expect(result.pass).toBe(false);
+    expect(result.message).toContain('No checkable sentences');
+    expect(result.diagnostic.received).toBe('skipped: no checkable sentences');
   });
 });
 

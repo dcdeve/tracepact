@@ -57,6 +57,12 @@ function buildMcpSandbox(
   const tools: TypedToolDefinition[] = extraTools ? [...extraTools] : [];
 
   for (const conn of mcp) {
+    const collisions = Object.keys(conn.handlers).filter((name) => name in handlers);
+    if (collisions.length > 0) {
+      throw new Error(
+        `[tracepact] MCP tool name collision detected on server "${conn.server}": tool(s) ${collisions.map((n) => `"${n}"`).join(', ')} are already registered by a previous server. Each MCP server must expose unique tool names.`
+      );
+    }
     Object.assign(handlers, conn.handlers);
     Object.assign(sources, conn.sources);
     tools.push(...conn.tools);

@@ -72,7 +72,7 @@ export interface MockSandboxOptions {
   strict?: boolean;
 }
 
-export class MockSandbox {
+export class MockSandbox implements Sandbox {
   constructor(tools: MockToolDefs, sources: Record<string, ToolCallSource>, writeToolName: string, options: MockSandboxOptions)
   async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult>
   getTrace(): ToolTrace
@@ -126,7 +126,7 @@ export type MockToolDefs = Record<string, MockToolImpl | MockToolEntry>;
 - **Entradas:** `ToolTrace`, `string` (output), `WriteCapture[]`
 - **Salidas:** `MatcherResult` with `pass`, `message`, `tier`, `diagnostic`
 - **Estado interno:** stateless (except `EmbeddingCache` which is a module-level singleton `globalEmbeddingCache`)
-- **Observaciones:** `[OBSERVED]` Tier 3 matchers call `embedWithCache(provider, texts)` which deduplicates against a module-level `globalEmbeddingCache` (an instance of `EmbeddingCache`) — only uncached texts are sent to the provider. `[OBSERVED]` `EmbeddingCache` uses a 16-hex-character SHA256 prefix as the in-memory key. `[OBSERVED]` `EmbeddingCache` maintains an `inFlight: Map<string, Promise<number[]>>` to deduplicate concurrent embedding requests for the same text — a second call for an in-flight text awaits the first rather than firing a new API request. `[OBSERVED]` `clearEmbeddingCache()` is exported from `matchers/tier3/embedding-cache.ts` and re-exported via `matchers/tier3/index.ts` — call it between test suites to reset the cache. `[OBSERVED]` `OpenAIEmbeddingProvider` constructor accepts optional `model` and `dimensions` parameters, allowing callers to select specific embedding models without subclassing. `[OBSERVED]` Tier 4 (`toPassJudge`) requires `driver` in options — returns a fail result immediately if no driver is provided, without throwing. `[OBSERVED]` Tier 4 consensus voting: when `consensus > 1`, temperature defaults to `0.3`; single-judge mode defaults to `0`. Majority rule (`passed > consensusCount / 2`) determines pass/fail. `[OBSERVED]` `JudgeConfig.timeout?: number` is forwarded to `driver.run()` — limits per-judge-call latency. `[OBSERVED]` Partial voter failure: individual voter errors are collected in `voterErrors[]`; only when all voters fail does `JudgeExecutor.evaluate()` throw. `[OBSERVED]` Judge response parse failure now throws instead of silently returning `pass: false` — surfaces prompt/schema mismatches rather than producing misleading results. `[OBSERVED]` The `tier` field on `MatcherResult` is diagnostic only — it is not used to affect pass/fail logic. `[OBSERVED]` `JudgeExecutor` uses a `MockSandbox({})` internally for each judge API call — the judge LLM does not use any tools.
+- **Observaciones:** `[OBSERVED]` Tier 3 matchers call `embedWithCache(provider, texts)` which deduplicates against a module-level `globalEmbeddingCache` (an instance of `EmbeddingCache`) — only uncached texts are sent to the provider. `[OBSERVED]` `EmbeddingCache` uses a 16-hex-character SHA256 prefix as the in-memory key. `[OBSERVED]` `EmbeddingCache` maintains an `inFlight: Map<string, Promise<number[]>>` to deduplicate concurrent embedding requests for the same text — a second call for an in-flight text awaits the first rather than firing a new API request. `[OBSERVED]` `clearEmbeddingCache()` is exported from `matchers/tier3/embedding-cache.ts` and re-exported via `matchers/tier3/index.ts` — call it between test suites to reset the cache. `[OBSERVED]` `OpenAIEmbeddingProvider` constructor accepts optional `model` and `dimensions` parameters, allowing callers to select specific embedding models without subclassing. `[OBSERVED]` Tier 4 (`toPassJudge`) requires `driver` in options — returns a fail result immediately if no driver is provided, without throwing. `[OBSERVED]` Tier 4 consensus voting: when `consensus > 1`, temperature defaults to `0.3`; single-judge mode defaults to `0`. Majority rule (`passed > consensusCount / 2`) determines pass/fail. `[OBSERVED]` `JudgeConfig.timeout?: number` is forwarded to `driver.run()` — limits per-judge-call latency. `[OBSERVED]` Partial voter failure: individual voter errors are collected in `voterErrors[]`; only when all voters fail does `JudgeExecutor.evaluate()` throw. `[OBSERVED]` Judge response parse failure now throws instead of silently returning `pass: false` — surfaces prompt/schema mismatches rather than producing misleading results. `[OBSERVED]` The `tier` field on `MatcherResult` is diagnostic only — it is not used to affect pass/fail logic. `[OBSERVED]` `JudgeExecutor` uses a `MockSandbox({})` internally for each judge API call — the judge LLM does not use any tools. `[OBSERVED]` When `consensus > 1`, all voter calls are dispatched concurrently via `Promise.allSettled` — latency is ~1× the individual judge latency, not N×. `[OBSERVED]` `singleJudge()` applies `RedactionPipeline` to the raw driver output before JSON parsing and before including it in error messages — judge responses are scrubbed of secrets the same way agent outputs are.
 
 #### Firmas relevantes
 
@@ -144,7 +144,7 @@ function toHaveLastCalledTool(trace: ToolTrace, name: string): MatcherResult
 function toHaveMarkdownStructure(output: string, spec: MarkdownSpec): MatcherResult
 function toMatchJsonSchema(output: string, schema: Record<string, unknown>): MatcherResult
 function toHaveLineCount(output: string, spec: LineCountSpec): MatcherResult
-function toHaveFileWritten(writesOrTrace: ReadonlyArray<WriteCapture> | ToolTrace, path: string, contentMatcher?: string | RegExp): MatcherResult
+function toHaveFileWritten(writesOrTrace: ReadonlyArray<WriteCapture> | ToolTrace, path: string, contentMatcher?: string | RegExp, writeToolName?: string): MatcherResult
 
 // Tier 2 — string content, zero cost
 function toContain(output: string, pattern: string | RegExp): MatcherResult
@@ -321,6 +321,7 @@ _Auto-generated from code — do not edit this block manually._
 export class CassettePlayer {
   constructor(filePath: string, stubs: CassetteStub[], strict: boolean)
   async load(): Promise<Cassette>
+  async reload(): Promise<Cassette>
   async replay(currentPrompt: string, currentToolDefsHash: string): Promise<RunResult>
 }
 ```

@@ -114,6 +114,8 @@ export interface McpClientConfig {
   env?: Record<string, string>;
   /** Timeout in ms for each tool call. Defaults to 30 000 ms. */
   toolCallTimeoutMs?: number;
+  /** Timeout in ms for the initial connect() + listTools() handshake. Defaults to 10 000 ms. */
+  connectTimeoutMs?: number;
 }
 
 export interface McpToolInfo {

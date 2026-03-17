@@ -8,9 +8,15 @@ export function tracepactPlugin(): Plugin {
   return {
     name: 'tracepact',
     config() {
-      const envTimeout = process.env.TRACEPACT_TEST_TIMEOUT
-        ? Number(process.env.TRACEPACT_TEST_TIMEOUT)
-        : undefined;
+      const rawTimeout = process.env.TRACEPACT_TEST_TIMEOUT;
+      const parsedTimeout = rawTimeout !== undefined ? Number(rawTimeout) : undefined;
+      if (parsedTimeout !== undefined && !Number.isFinite(parsedTimeout)) {
+        console.warn(
+          `[tracepact] TRACEPACT_TEST_TIMEOUT="${rawTimeout}" is not a valid number — ignoring and using default timeout.`
+        );
+      }
+      const envTimeout =
+        parsedTimeout !== undefined && Number.isFinite(parsedTimeout) ? parsedTimeout : undefined;
       return {
         test: {
           include: ['**/*.tracepact.ts', '**/*.tracepact.js'],

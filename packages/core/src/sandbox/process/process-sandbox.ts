@@ -6,11 +6,13 @@ import { promisify } from 'node:util';
 import { log } from '../../logger.js';
 import { TraceBuilder } from '../../trace/trace-builder.js';
 import type { ToolResult, ToolTrace } from '../../trace/types.js';
+import { isAllowedCommand, isAllowedPath } from '../glob-utils.js';
+import type { Sandbox } from '../types.js';
 import type { ProcessSandboxConfig } from './types.js';
 
 const exec = promisify(execFile);
 
-export class ProcessSandbox {
+export class ProcessSandbox implements Sandbox {
   private config: ProcessSandboxConfig;
   private workdir: string;
   private ownsWorkdir: boolean;
@@ -128,26 +130,11 @@ export class ProcessSandbox {
   }
 
   isAllowedPath(path: string): boolean {
-    const allowList = this.config.allow?.fs;
-    if (!allowList || allowList.length === 0) return true;
-    return allowList.some((pattern) => {
-      const escaped = pattern
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*\*\//g, '\0GLOBSTAR\0')
-        .replace(/\*\*/g, '.*')
-        .replace(/\*/g, '[^/]*')
-        .replace(/\0GLOBSTAR\0/g, '(?:.*/)?');
-      return new RegExp(`^${escaped}$`).test(path);
-    });
+    return isAllowedPath(path, this.config.allow?.fs);
   }
 
   isAllowedCommand(command: string): boolean {
-    const allowList = this.config.allow?.bash;
-    if (!allowList || allowList.length === 0) return true;
-    return allowList.some((matcher) => {
-      if (typeof matcher === 'string') return command === matcher;
-      return matcher.test(command);
-    });
+    return isAllowedCommand(command, this.config.allow?.bash);
   }
 
   getTrace(): ToolTrace {

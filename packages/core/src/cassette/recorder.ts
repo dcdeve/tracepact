@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { RedactionConfig } from '../config/types.js';
 import type { RunResult } from '../driver/types.js';
@@ -53,8 +53,19 @@ export class CassetteRecorder {
       return;
     }
 
+    const tmpPath = `${this.filePath}.tmp`;
     await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(this.filePath, serialized, 'utf-8');
+    try {
+      await writeFile(tmpPath, serialized, 'utf-8');
+      await rename(tmpPath, this.filePath);
+    } catch (err) {
+      try {
+        await unlink(tmpPath);
+      } catch {
+        // ignore cleanup failure
+      }
+      throw err;
+    }
     log.info(`Cassette saved: ${this.filePath}`);
   }
 }

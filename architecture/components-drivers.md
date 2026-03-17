@@ -151,6 +151,7 @@ constructor(config: {
   apiKey?: string;
   providerName?: string;
   maxConcurrency?: number;
+  semaphoreTimeoutMs?: number;  // hard reject if semaphore slot not acquired within this ms
   retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number };
 })
 
@@ -168,7 +169,7 @@ _Auto-generated from code — do not edit this block manually._
 
 ```ts
 export class AnthropicDriver implements AgentDriver {
-  constructor(config: { model: string; apiKey?: string; providerName?: string; maxConcurrency?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
+  constructor(config: { model: string; apiKey?: string; providerName?: string; maxConcurrency?: number; semaphoreTimeoutMs?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
   async run(input: RunInput): Promise<RunResult>
   async healthCheck(): Promise<HealthCheckResult>
 }
@@ -208,6 +209,7 @@ constructor(config: {
   baseURL?: string;
   providerName?: string;
   maxConcurrency?: number;
+  semaphoreTimeoutMs?: number;  // hard reject if semaphore slot not acquired within this ms
   retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number };
 })
 
@@ -225,7 +227,7 @@ _Auto-generated from code — do not edit this block manually._
 
 ```ts
 export class OpenAIDriver implements AgentDriver {
-  constructor(config: { model: string; apiKey?: string; baseURL?: string; providerName?: string; maxConcurrency?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
+  constructor(config: { model: string; apiKey?: string; baseURL?: string; providerName?: string; maxConcurrency?: number; semaphoreTimeoutMs?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
   async run(input: RunInput): Promise<RunResult>
   async healthCheck(): Promise<HealthCheckResult>
 }
@@ -245,7 +247,7 @@ export class OpenAIDriver implements AgentDriver {
 - **Entradas:** `TracepactConfig`
 - **Salidas:** `AgentDriver` instances
 - **Estado interno:** stateful — holds a `Map<string, AgentDriver>` and a `Map<string, Error>` for deferred init errors
-- **Observaciones:** `[OBSERVED]` `getDefault()` returns the driver for the `providers.default` key in config. `[OBSERVED]` Initialization errors are deferred — if a driver fails to construct, the error is stored internally and re-thrown as `ConfigError` with context when `get()` is called for that provider name. This distinguishes "provider not configured" from "provider failed to initialize". `[OBSERVED]` `NATIVE_DRIVERS` map only contains `{ anthropic: AnthropicDriver }` — `openai` and all other providers fall back to `OpenAIDriver` with a `baseURL` from presets. `[OBSERVED]` `DriverRegistry.register(name, DriverClass)` static method allows registering custom driver constructors at module level; must be called before `DriverRegistry` instantiation (or any `executePrompt()` call). `[OBSERVED]` `DriverRegistry.unregister(name)` static method removes a previously registered custom driver class — symmetric counterpart to `register()`, primarily useful in test teardown. `[OBSERVED]` `validateAll()` method throws a single `ConfigError` listing all providers that failed to initialize — called automatically by `executePrompt()` after registry construction (so misconfiguration surfaces before the first run, not mid-test).
+- **Observaciones:** `[OBSERVED]` `getDefault()` returns the driver for the `providers.default` key in config. `[OBSERVED]` Initialization errors are deferred — if a driver fails to construct, the error is stored internally and re-thrown as `ConfigError` with context when `get()` is called for that provider name. This distinguishes "provider not configured" from "provider failed to initialize". `[OBSERVED]` `NATIVE_DRIVERS` map only contains `{ anthropic: AnthropicDriver }` — `openai` and all other providers fall back to `OpenAIDriver` with a `baseURL` from presets. `[OBSERVED]` `DriverRegistry.register(name, DriverClass)` static method allows registering custom driver constructors at module level; must be called before any `executePrompt()` call. If `register()` is called after the registry cache is already populated, a `log.warn` is emitted naming `clearRegistryCache()` as the remedy — the stale cache is not automatically invalidated. `[OBSERVED]` `DriverRegistry.unregister(name)` static method removes a previously registered custom driver class — symmetric counterpart to `register()`, primarily useful in test teardown. `[OBSERVED]` `validateAll()` method throws a single `ConfigError` listing all providers that failed to initialize — called automatically by `executePrompt()` after registry construction (so misconfiguration surfaces before the first run, not mid-test).
 
 #### Firmas relevantes
 
@@ -271,6 +273,8 @@ _Auto-generated from code — do not edit this block manually._
 ### `packages/core/src/driver/registry.ts`
 
 ```ts
+export function _setRegistryCacheChecker(fn: () => boolean): void
+
 export class DriverRegistry {
   constructor(config: TracepactConfig)
   register(name: string, DriverClass: DriverConstructor): void
@@ -311,7 +315,7 @@ _Auto-generated from code — do not edit this block manually._
 // simplified
 export interface ExecutePromptOptions {
   prompt: string;;
-  sandbox?: MockSandbox;;
+  sandbox?: Sandbox;;
   tools?: TypedToolDefinition[];;
   config?: RunConfig;;
   tracepactConfig?: Partial<TracepactConfig>;;

@@ -89,5 +89,9 @@ function formatArgs(args: Record<string, unknown>): string {
 }
 
 function escapeString(s: string): string {
-  return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+  // JSON.stringify handles all control characters (\r, \t, \0, Unicode, etc.)
+  // Slice removes the surrounding double-quotes it adds.
+  // Then swap \" → " (no need to escape in single-quoted strings)
+  // and ensure ' is escaped (JSON.stringify doesn't escape it).
+  return JSON.stringify(s).slice(1, -1).replace(/\\"/g, '"').replace(/'/g, "\\'");
 }

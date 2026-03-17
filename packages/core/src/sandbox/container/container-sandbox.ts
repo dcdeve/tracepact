@@ -1,11 +1,13 @@
 import { resolve } from 'node:path';
 import { TraceBuilder } from '../../trace/trace-builder.js';
 import type { ToolResult, ToolTrace } from '../../trace/types.js';
+import { isAllowedCommand, isAllowedPath } from '../glob-utils.js';
 import type { McpMockServer } from '../mcp/mcp-mock-server.js';
+import type { Sandbox } from '../types.js';
 import { DockerClient } from './docker-client.js';
 import type { ContainerConfig } from './types.js';
 
-export class ContainerSandbox {
+export class ContainerSandbox implements Sandbox {
   private config: ContainerConfig;
   private docker: DockerClient;
   private containerId: string | null = null;
@@ -143,23 +145,11 @@ export class ContainerSandbox {
   }
 
   isAllowedPath(path: string): boolean {
-    const allowList = this.config.allow?.fs;
-    if (!allowList || allowList.length === 0) return true;
-    return allowList.some((pattern) => {
-      const regex = new RegExp(
-        `^${pattern.replace(/\*\*/g, '.*').replace(/(?<!\.\*)\*/g, '[^/]*')}$`
-      );
-      return regex.test(path);
-    });
+    return isAllowedPath(path, this.config.allow?.fs);
   }
 
   isAllowedCommand(command: string): boolean {
-    const allowList = this.config.allow?.bash;
-    if (!allowList || allowList.length === 0) return true;
-    return allowList.some((matcher) => {
-      if (typeof matcher === 'string') return command === matcher;
-      return matcher.test(command);
-    });
+    return isAllowedCommand(command, this.config.allow?.bash);
   }
 
   getTrace(): ToolTrace {

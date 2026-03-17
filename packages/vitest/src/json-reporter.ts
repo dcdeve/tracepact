@@ -13,14 +13,22 @@ interface TestResult {
 
 export class TracepactJsonReporter implements Reporter {
   private results: TestResult[] = [];
-  private readonly redaction: RedactionPipeline;
+  // Intentionally not built at construction time: RedactionPipeline captures
+  // process.env once during construction, so building it lazily in onFinished()
+  // ensures any secrets injected after reporter instantiation (dotenv lazy
+  // loads, CI secret injection, test fixtures) are still redacted.
+  private readonly redactionConfig: RedactionConfig | undefined;
 
   constructor(redactionConfig?: RedactionConfig) {
-    this.redaction = new RedactionPipeline(redactionConfig);
+    this.redactionConfig = redactionConfig;
   }
 
   onFinished(files?: File[]) {
     if (!files) return;
+
+    // Build the pipeline here so process.env is read after all test setup has
+    // completed and any late-arriving secrets are present.
+    const redaction = new RedactionPipeline(this.redactionConfig);
 
     for (const file of files) {
       this.collectTasks(file.tasks, file.filepath);
@@ -38,7 +46,7 @@ export class TracepactJsonReporter implements Reporter {
       tests: this.results,
     };
 
-    const redactedOutput = this.redaction.redactObject(output);
+    const redactedOutput = redaction.redactObject(output);
     mkdirSync('.tracepact', { recursive: true });
     writeFileSync('.tracepact/results.json', JSON.stringify(redactedOutput, null, 2));
 

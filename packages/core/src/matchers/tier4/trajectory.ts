@@ -141,7 +141,7 @@ export async function toMatchTrajectory(
     }
 
     const traceSummary = buildTraceSummary(trace);
-    const judgePrompt = `${config.judge.criteria}\n\n## Agent Trace\n${traceSummary}\n\n## Agent Output\n${result.output}`;
+    const judgePrompt = `${config.judge.criteria}\n\n## Agent Trace\n${traceSummary}`;
 
     const judgeConfig: JudgeConfig = {
       criteria: judgePrompt,

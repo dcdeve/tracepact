@@ -20,6 +20,12 @@ export const captureSchema = {
     .describe(
       'Representative prompt to send to the agent — used to infer assertions from the resulting trace'
     ),
+  cassette_path: z
+    .string()
+    .optional()
+    .describe(
+      'Explicit path to the cassette JSON file to read. Use this when the cassette was recorded with runSkill({ record: true }) — the path is printed by tracepact run --record or returned in the runSkill result.'
+    ),
 };
 
 export const auditSchema = {

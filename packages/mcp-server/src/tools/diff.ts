@@ -6,7 +6,7 @@ export async function handleDiff(args: {
   cassette_b: string;
   ignore_keys?: string[] | undefined;
   ignore_tools?: string[] | undefined;
-}): Promise<DiffResult & { error?: string }> {
+}): Promise<DiffResult> {
   const policy: DiffPolicy = {
     ignoreKeys: args.ignore_keys ?? undefined,
     ignoreTools: args.ignore_tools ?? undefined,
@@ -14,14 +14,7 @@ export async function handleDiff(args: {
   try {
     return await diffCassettes(args.cassette_a, args.cassette_b, policy);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      changed: false,
-      severity: 'none',
-      additions: [],
-      removals: [],
-      diffs: [],
-      error: message,
-    };
+    console.error('[tracepact] diff failed:', err);
+    throw err;
   }
 }

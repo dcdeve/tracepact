@@ -1,3 +1,4 @@
+import pkg from '../../package.json' assert { type: 'json' };
 import { computeManifest } from '../cache/run-manifest.js';
 import { DEFAULT_MAX_TOOL_ITERATIONS, DEFAULT_TEMPERATURE } from '../config/defaults.js';
 import { DriverError } from '../errors/driver-error.js';
@@ -66,6 +67,7 @@ export class AnthropicDriver implements AgentDriver {
     apiKey?: string;
     providerName?: string;
     maxConcurrency?: number;
+    semaphoreTimeoutMs?: number;
     retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number };
   }) {
     const apiKey = config.apiKey ?? process.env.ANTHROPIC_API_KEY;
@@ -78,7 +80,7 @@ export class AnthropicDriver implements AgentDriver {
     this.model = config.model;
     this.name = config.providerName ?? 'anthropic';
     this.retry = new RetryPolicy(config.retry);
-    this.semaphore = new Semaphore(config.maxConcurrency ?? 5);
+    this.semaphore = new Semaphore(config.maxConcurrency ?? 5, config.semaphoreTimeoutMs);
   }
 
   /** @internal — allows injecting a mock client for testing */
@@ -326,8 +328,8 @@ export class AnthropicDriver implements AgentDriver {
         provider: this.name,
         model: this.model,
         temperature: temp,
-        frameworkVersion: '__VERSION__',
-        driverVersion: '__VERSION__',
+        frameworkVersion: pkg.version,
+        driverVersion: pkg.version,
       };
       const manifest = computeManifest(manifestParams);
 
@@ -359,12 +361,13 @@ export class AnthropicDriver implements AgentDriver {
     const start = performance.now();
     const HEALTH_CHECK_TIMEOUT_MS = 5_000;
     try {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(
+      let timeoutHandle: ReturnType<typeof setTimeout>;
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
           () => reject(new Error(`healthCheck timed out after ${HEALTH_CHECK_TIMEOUT_MS}ms`)),
           HEALTH_CHECK_TIMEOUT_MS
-        )
-      );
+        );
+      });
       const response = (await Promise.race([
         client.messages.create({
           model: this.model,
@@ -372,7 +375,7 @@ export class AnthropicDriver implements AgentDriver {
           messages: [{ role: 'user', content: 'ping' }],
         }),
         timeout,
-      ])) as AnthropicMessagesResponse;
+      ]).finally(() => clearTimeout(timeoutHandle))) as AnthropicMessagesResponse;
       return {
         ok: true,
         latencyMs: performance.now() - start,

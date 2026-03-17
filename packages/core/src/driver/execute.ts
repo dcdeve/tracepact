@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import pkg from '../../package.json' assert { type: 'json' };
 import { CacheStore } from '../cache/cache-store.js';
 import { CassettePlayer } from '../cassette/player.js';
 import { CassetteRecorder } from '../cassette/recorder.js';
@@ -9,14 +10,18 @@ import { parseSkill } from '../parser/skill-parser.js';
 import type { ParsedSkill } from '../parser/types.js';
 import { RedactionPipeline } from '../redaction/pipeline.js';
 import { MockSandbox } from '../sandbox/mock-sandbox.js';
+import type { Sandbox } from '../sandbox/types.js';
 import type { TypedToolDefinition } from '../tools/types.js';
-import { DriverRegistry } from './registry.js';
+import { DriverRegistry, _setRegistryCacheChecker } from './registry.js';
 import { detectProvider, resolveConfig } from './resolve.js';
 import type { RunConfig, RunResult } from './types.js';
 
 // Module-level cache: reuse registries across executePrompt() calls when config is stable
 // (i.e. no per-call providers override that would produce a different TracepactConfig).
 const _registryCache = new Map<string, DriverRegistry>();
+
+// Wire up the stale-cache checker so registry.ts can warn if register() is called late.
+_setRegistryCacheChecker(() => _registryCache.size > 0);
 
 /** Clear the module-level registry cache. Call this in test teardown (e.g. afterAll) to
  * prevent stale registries from leaking across test suites that change env vars. */
@@ -26,7 +31,7 @@ export function clearRegistryCache(): void {
 
 export interface ExecutePromptOptions {
   prompt: string;
-  sandbox?: MockSandbox;
+  sandbox?: Sandbox;
   tools?: TypedToolDefinition[];
   config?: RunConfig;
   tracepactConfig?: Partial<TracepactConfig>;
@@ -87,8 +92,10 @@ export async function executePrompt(
   // 4. Execute via driver
   const providerName = opts.provider ?? detectProvider();
   const config = resolveConfig(providerName, opts.tracepactConfig);
-  const hasProviderOverrides = !!opts.tracepactConfig?.providers;
-  const cacheKey = hasProviderOverrides ? null : providerName;
+  const hasProviderOverrides = !!opts.tracepactConfig?.providers || !!opts.tracepactConfig?.model;
+  const cacheKey = hasProviderOverrides
+    ? null
+    : `${providerName}::${process.env.TRACEPACT_MODEL ?? ''}`;
   let registry = cacheKey !== null ? _registryCache.get(cacheKey) : undefined;
   if (!registry) {
     registry = new DriverRegistry(config);
@@ -149,8 +156,8 @@ export async function executePrompt(
           : 'unknown';
       })(),
       temperature: opts.config?.temperature ?? 0,
-      frameworkVersion: '__VERSION__',
-      driverVersion: '__VERSION__',
+      frameworkVersion: pkg.version,
+      driverVersion: pkg.version,
     }
   );
 

@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs';
+import { lstatSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 interface TestFile {
@@ -28,6 +28,13 @@ export function handleListTests(args: { skill_path: string }): {
 
   // Search for cassettes
   const cassetteDirs = [join(skillDir, 'cassettes'), join(skillDir, '__cassettes__')];
+  const envCassetteDir = process.env.TRACEPACT_CASSETTE_DIR;
+  if (envCassetteDir) {
+    const resolvedEnvDir = resolve(envCassetteDir);
+    if (!cassetteDirs.includes(resolvedEnvDir)) {
+      cassetteDirs.push(resolvedEnvDir);
+    }
+  }
   for (const dir of cassetteDirs) {
     try {
       scanDir(dir, (filePath, name) => {
@@ -49,7 +56,7 @@ function scanDir(dir: string, cb: (path: string, name: string) => void): void {
     for (const entry of entries) {
       const fullPath = join(dir, entry);
       try {
-        const stat = statSync(fullPath);
+        const stat = lstatSync(fullPath);
         if (stat.isFile()) {
           cb(fullPath, entry);
         } else if (stat.isDirectory() && entry !== 'node_modules' && entry !== 'dist') {

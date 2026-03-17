@@ -1,7 +1,7 @@
 import { log } from '../logger.js';
 import { TraceBuilder } from '../trace/trace-builder.js';
 import type { ToolCallSource, ToolResult, ToolTrace } from '../trace/types.js';
-import type { MockToolDefs, MockToolEntry, MockToolImpl, WriteCapture } from './types.js';
+import type { MockToolDefs, MockToolEntry, MockToolImpl, Sandbox, WriteCapture } from './types.js';
 
 export interface MockSandboxOptions {
   /**
@@ -139,7 +139,7 @@ function validateArgs(
   return validateObjectProperties(args, schema);
 }
 
-export class MockSandbox {
+export class MockSandbox implements Sandbox {
   private readonly tools: MockToolDefs;
   private readonly sources: Record<string, ToolCallSource>;
   private readonly traceBuilder = new TraceBuilder();
