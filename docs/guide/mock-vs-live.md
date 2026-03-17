@@ -42,20 +42,20 @@ const tools = defineTools({
 | | `runSkill` | `executePrompt` |
 |---|---|---|
 | **Package** | `@tracepact/vitest` | `@tracepact/core` |
-| **Requires** | `TRACEPACT_LIVE=1` or `replay` path | Always executes live |
-| **Use case** | Vitest tests with tier annotations | Direct live calls |
-| **Without live/replay** | Warns and returns empty mock result (see below) | Calls the LLM API |
+| **Requires** | `TRACEPACT_LIVE=1` or `replay` path | Live, replay, or cache hit |
+| **Use case** | Vitest tests with tier annotations | Direct live/replay calls |
+| **Without live/replay** | Throws an `Error` unless `mode: 'mock'` is set (see below) | Calls the LLM API (or returns cached result) |
 
 > **What happens when `runSkill()` runs without `TRACEPACT_LIVE=1` and no `replay` path?**
 >
-> It prints a `console.warn` and returns an empty result: `output: ''`, empty trace from the sandbox, zero tokens, and zero duration. This is intentional — mock-only tests should use sandbox directly, not `runSkill()`. If you need to call the LLM, either set `TRACEPACT_LIVE=1` or use `executePrompt()` from `@tracepact/core`.
+> It throws an `Error` with a message listing the three options: set `TRACEPACT_LIVE=1` for live execution, pass `replay: "path/to/cassette.json"` for replay, or pass `mode: "mock"` to explicitly return an empty mock result (`output: ''`, empty trace, zero tokens, zero duration). This is intentional — calling `runSkill()` without a configured execution mode is treated as a misconfiguration.
 
 ```typescript
 // In vitest tests — respects TRACEPACT_LIVE
 import { runSkill } from '@tracepact/vitest';
 const result = await runSkill(skill, { prompt: 'deploy', sandbox, tools });
 
-// Direct live call — always executes
+// Direct call — executes live, replays a cassette, or returns a cached result
 import { executePrompt } from '@tracepact/core';
 const result = await executePrompt(skill, { prompt: 'deploy', sandbox, tools });
 ```

@@ -19,5 +19,5 @@ features:
   - title: MCP Server
     details: Register @tracepact/mcp-server in your IDE. Tell your AI "test this agent" — it handles the rest.
   - title: Zero-Cost Mock Mode
-    details: Test offline with MockDriver and MockSandbox. No API keys needed for development.
+    details: Test offline with MockSandbox and createMockTools(). No API keys needed for development.
 ---

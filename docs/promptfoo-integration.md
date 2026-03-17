@@ -25,7 +25,7 @@ providers:
     config:
       skill: "./SKILL.md"          # path to your SKILL.md
       # systemPrompt: "You are…"  # or use an inline prompt
-      provider: openai              # openai, groq, deepseek, etc.
+      provider: openai              # openai, anthropic, groq, deepseek, mistral, together, openrouter, xai, cerebras, fireworks, perplexity
       model: gpt-4o
       tools:
         read_file:
@@ -43,7 +43,7 @@ providers:
 |--------|-------------|
 | `skill` | Path to a SKILL.md file |
 | `systemPrompt` | Inline system prompt (alternative to `skill`) |
-| `provider` | Provider name: `openai`, `groq`, `deepseek`, `mistral`, `together`, `openrouter` |
+| `provider` | Provider name: `openai`, `anthropic`, `groq`, `deepseek`, `mistral`, `together`, `openrouter`, `xai`, `cerebras`, `fireworks`, `perplexity` |
 | `model` | Model ID (e.g., `gpt-4o`, `llama-3.3-70b`) |
 | `apiKey` | API key (defaults to env var) |
 | `baseURL` | Custom base URL (overrides preset) |

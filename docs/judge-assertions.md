@@ -148,8 +148,10 @@ Run with `tracepact --full` to include expensive tests. `--full` implies `--live
 
 ```typescript
 interface ToPassJudgeOptions {
-  driver: AgentDriver;           // required — LLM driver for judge calls
+  driver?: AgentDriver;          // LLM driver for judge calls
   calibration?: string | CalibrationSet; // bundled name or custom set
+  model?: string;                // override model for judge calls
+  provider?: string;             // override provider for judge calls
   consensus?: number;            // default: 1
   temperature?: number;          // default: 0 (single) or 0.3 (consensus)
   maxTokens?: number;            // default: 1024

@@ -5,20 +5,29 @@ Embedding-based assertions compare meaning, not exact text.
 ## `toBeSemanticallySimilar`
 
 ```typescript
+import { OpenAIEmbeddingProvider } from '@tracepact/core';
+
+const provider = new OpenAIEmbeddingProvider();
+
 expect(result).toBeSemanticallySimilar(
   'The deployment was successful',
-  { threshold: 0.80 }
+  { threshold: 0.80, provider }
 );
 ```
 
-Uses OpenAI `text-embedding-3-small` by default.
+Requires an explicit `provider` — there is no automatic default. Pass an `OpenAIEmbeddingProvider` instance (the only bundled implementation) or any custom object satisfying the `EmbeddingProvider` interface.
 
 ## `toHaveSemanticOverlap`
 
 ```typescript
-expect(result).toHaveSemanticOverlap(referenceOutput, {
-  threshold: 0.75,
-});
+import { OpenAIEmbeddingProvider } from '@tracepact/core';
+
+const provider = new OpenAIEmbeddingProvider();
+
+expect(result).toHaveSemanticOverlap(
+  ['deployment', 'success', 'rollout'],
+  { threshold: 0.75, provider }
+);
 ```
 
 ## Cost

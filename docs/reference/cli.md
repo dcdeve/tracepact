@@ -10,7 +10,7 @@ tracepact init --demo         # scaffold demo project
 tracepact models              # browse available models and providers
 tracepact audit <skill-path>  # static analysis of SKILL.md
 tracepact capture             # generate test from cassette
-tracepact cache list|clear    # manage cache
+tracepact cache list|clear|verify  # manage cache
 tracepact cost-report         # show token usage from last run
 tracepact doctor              # check environment
 ```
@@ -18,14 +18,15 @@ tracepact doctor              # check environment
 ## Run Options
 
 ```bash
-tracepact --live              # include live API tests
-tracepact --full              # include expensive (Tier 3-4)
-tracepact --provider openai   # select provider
-tracepact --budget 50000      # token budget limit
-tracepact --json              # JSON reporter
-tracepact --record            # record cassettes (implies --live)
-tracepact --replay <dir>      # replay from cassettes
-tracepact --no-cache          # skip response cache
+tracepact --live                   # include live API tests
+tracepact --full                   # include expensive (Tier 3-4)
+tracepact --provider openai        # select provider
+tracepact --budget 50000           # token budget limit
+tracepact --json                   # JSON reporter
+tracepact --record                 # record cassettes (implies --live)
+tracepact --replay <dir>           # replay from cassettes
+tracepact --no-cache               # skip response cache
+tracepact --health-check-strict    # exit if provider health check fails
 ```
 
 ## Init
@@ -60,7 +61,32 @@ tracepact capture \
   --skill ./SKILL.md \
   --prompt "deploy the app" \
   --cassette ./cassettes/deploy.json \
+  --out ./tests/deploy.test.ts \
+  --provider anthropic \
+  --with-semantic \
   --dry-run
+```
+
+## Diff
+
+Compare two cassettes and show behavioral differences:
+
+```bash
+tracepact diff <cassette-a> <cassette-b>
+tracepact diff cassettes/v1.json cassettes/v2.json --json
+tracepact diff cassettes/v1.json cassettes/v2.json --exit-on-change
+tracepact diff cassettes/v1.json cassettes/v2.json --fail-on warn
+tracepact diff cassettes/v1.json cassettes/v2.json --ignore-keys timestamp,requestId
+tracepact diff cassettes/v1.json cassettes/v2.json --ignore-tools read_file,list_dir
+```
+
+## Cache
+
+```bash
+tracepact cache list    # show cached entries
+tracepact cache clear   # delete all cache entries
+tracepact cache clear --stale   # delete only expired entries
+tracepact cache verify  # check cache integrity
 ```
 
 ## Audit Rules
@@ -95,5 +121,3 @@ tracepact audit SKILL.md --fail-on high   # ignore medium/low findings
 | 0 | All tests pass |
 | 1 | Test failure or error |
 | 2 | Configuration error |
-| 3 | Budget exceeded |
-| 4 | Provider unreachable |

@@ -18,7 +18,7 @@
 The result is a fully populated `TracepactConfig`.
 
 ### Provider auto-detection
-`[OBSERVED]` `detectProvider()` checks in order: `TRACEPACT_PROVIDER` env var → first available API key in a hardcoded candidates list (openai, anthropic, groq, deepseek, together, mistral, openrouter, xai). Falls back to `'openai'` if none found. Note: cerebras, fireworks, and perplexity exist in `PROVIDER_PRESETS` but are not in the auto-detection candidates — they must be set via `TRACEPACT_PROVIDER`.
+`[OBSERVED]` `detectProvider()` checks in order: `TRACEPACT_PROVIDER` env var → first available API key by iterating over all entries in `PROVIDER_ENV_KEYS` (`packages/core/src/driver/presets.ts`). `PROVIDER_ENV_KEYS` is built from `openai` + `anthropic` plus every entry in `PROVIDER_PRESETS` (groq, deepseek, together, mistral, openrouter, xai, cerebras, fireworks, perplexity) — all eleven providers are candidates for auto-detection. Falls back to `'openai'` if no key is found.
 
 ### Env vars (critical)
 

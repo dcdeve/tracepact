@@ -7,10 +7,12 @@ import type { Cassette, CassetteStub } from './types.js';
 export class CassettePlayer {
   private filePath: string;
   private stubs: CassetteStub[];
+  private strict: boolean;
 
-  constructor(filePath: string, stubs?: CassetteStub[]) {
+  constructor(filePath: string, stubs?: CassetteStub[], strict = true) {
     this.filePath = filePath;
     this.stubs = stubs ?? [];
+    this.strict = strict;
   }
 
   async load(): Promise<Cassette> {
@@ -31,9 +33,11 @@ export class CassettePlayer {
     const cassette = await this.load();
 
     if (currentPrompt && cassette.metadata.prompt !== currentPrompt) {
-      log.warn(
-        `Cassette prompt mismatch. Recorded: "${cassette.metadata.prompt.slice(0, 60)}…", Current: "${currentPrompt.slice(0, 60)}…"`
-      );
+      const message = `Cassette prompt mismatch. Recorded: "${cassette.metadata.prompt.slice(0, 60)}…", Current: "${currentPrompt.slice(0, 60)}…"`;
+      if (this.strict) {
+        throw new Error(message);
+      }
+      log.warn(message);
     }
 
     const { result } = cassette;

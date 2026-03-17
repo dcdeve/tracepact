@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "typescript-expert": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "f0f625132cf53116cb27725926e2c99f142861b9063d459938dd85fbf8e2bf61"
+    }
+  }
+}

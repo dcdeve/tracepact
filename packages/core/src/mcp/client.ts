@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { version } from '../../package.json';
 import type { ToolCallSource, ToolResult } from '../trace/types.js';
 
 export interface McpClientConfig {
@@ -38,7 +39,7 @@ export class McpClient {
     this.transport = new StdioClientTransport(transportParams);
     this.client = new Client({
       name: 'tracepact',
-      version: '0.4.0',
+      version,
     });
   }
 

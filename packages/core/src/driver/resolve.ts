@@ -22,16 +22,7 @@ export function getDefaultModel(provider: string): string {
 export function detectProvider(): string {
   if (process.env.TRACEPACT_PROVIDER) return process.env.TRACEPACT_PROVIDER;
 
-  const candidates: Array<[string, string]> = [
-    ['openai', 'OPENAI_API_KEY'],
-    ['anthropic', 'ANTHROPIC_API_KEY'],
-    ['groq', 'GROQ_API_KEY'],
-    ['deepseek', 'DEEPSEEK_API_KEY'],
-    ['together', 'TOGETHER_API_KEY'],
-    ['mistral', 'MISTRAL_API_KEY'],
-    ['openrouter', 'OPENROUTER_API_KEY'],
-    ['xai', 'XAI_API_KEY'],
-  ];
+  const candidates = Object.entries(PROVIDER_ENV_KEYS);
 
   for (const [name, envKey] of candidates) {
     if (process.env[envKey]) return name;

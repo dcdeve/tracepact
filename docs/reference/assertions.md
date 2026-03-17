@@ -57,19 +57,19 @@ import { when, calledTool, calledToolWith, calledToolAfter, calledToolTimes } fr
 
 // Only assert if the tool was actually called
 when(result.trace, calledTool('bash'),
-  toHaveCalledTool(result, 'write_file'));
+  toHaveCalledTool(result.trace, 'write_file'));
 
 // Only assert if tool was called with specific args
 when(result.trace, calledToolWith('read_file', { path: 'config.json' }),
-  toHaveCalledTool(result, 'write_file'));
+  toHaveCalledTool(result.trace, 'write_file'));
 
 // Only assert if tools were called in order
 when(result.trace, calledToolAfter('read_file', 'write_file'),
-  toHaveCalledTool(result, 'bash'));
+  toHaveCalledTool(result.trace, 'bash'));
 
 // Only assert if tool was called exactly N times
 when(result.trace, calledToolTimes('bash', 2),
-  toHaveCalledTool(result, 'write_file'));
+  toHaveCalledTool(result.trace, 'write_file'));
 ```
 
 | Condition | Description |

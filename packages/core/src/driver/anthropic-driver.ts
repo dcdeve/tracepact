@@ -11,6 +11,38 @@ import type {
   RunResult,
 } from './types.js';
 
+/** Minimal shape of a non-streaming Anthropic messages response used by this driver. */
+interface AnthropicMessagesResponse {
+  id: string;
+  model: string;
+  content: Array<{ type: string; text?: string; id?: string; name?: string; input?: unknown }>;
+  usage: { input_tokens: number; output_tokens: number };
+  stop_reason: string | null;
+}
+
+/** Minimal shape of a streaming Anthropic event used by this driver. */
+interface AnthropicStreamEvent {
+  type: string;
+  message?: { usage?: { input_tokens?: number } };
+  usage?: { output_tokens?: number };
+  content_block?: { type?: string; id?: string; name?: string };
+  delta?: { type?: string; text?: string; partial_json?: string };
+}
+
+/** Accumulator for a single tool_use block assembled from stream events. */
+interface ToolUseAccumulator {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+/** Minimal structural interface for the @anthropic-ai/sdk client used by this driver. */
+interface AnthropicClient {
+  messages: {
+    create(params: Record<string, unknown>): Promise<unknown>;
+  };
+}
+
 export class AnthropicDriver implements AgentDriver {
   readonly name: string;
   readonly capabilities: DriverCapabilities = {
@@ -21,7 +53,7 @@ export class AnthropicDriver implements AgentDriver {
     maxContextWindow: 200_000,
   };
 
-  private client: any = null;
+  private client: AnthropicClient | null = null;
   private apiKey: string;
   private model: string;
   private retry: RetryPolicy;
@@ -48,11 +80,11 @@ export class AnthropicDriver implements AgentDriver {
   }
 
   /** @internal — allows injecting a mock client for testing */
-  _setClient(mockClient: any): void {
+  _setClient(mockClient: AnthropicClient): void {
     this.client = mockClient;
   }
 
-  private async getClient(): Promise<any> {
+  private async getClient(): Promise<AnthropicClient> {
     if (!this.client) {
       // Dynamic import — @anthropic-ai/sdk is an optional peer dependency
       let mod: any;
@@ -65,9 +97,9 @@ export class AnthropicDriver implements AgentDriver {
         );
       }
       const Anthropic = mod.default ?? mod.Anthropic;
-      this.client = new Anthropic({ apiKey: this.apiKey });
+      this.client = new Anthropic({ apiKey: this.apiKey }) as AnthropicClient;
     }
-    return this.client;
+    return this.client as AnthropicClient;
   }
 
   async run(input: RunInput): Promise<RunResult> {
@@ -100,7 +132,8 @@ export class AnthropicDriver implements AgentDriver {
 
     if (input.conversation) {
       for (const msg of input.conversation) {
-        messages.push({ role: msg.role, content: msg.content as string });
+        if (msg.role === 'system') continue;
+        messages.push({ role: msg.role, content: msg.content });
       }
     }
 
@@ -127,15 +160,15 @@ export class AnthropicDriver implements AgentDriver {
       }
 
       const textBlocks: string[] = [];
-      const toolUseBlocks: any[] = [];
+      const toolUseBlocks: ToolUseAccumulator[] = [];
 
       if (useStream) {
         requestParams.stream = true;
-        const stream: any = await this.semaphore.run(() =>
+        const stream = (await this.semaphore.run(() =>
           this.retry.execute(() => client.messages.create(requestParams))
-        );
+        )) as AsyncIterable<AnthropicStreamEvent>;
 
-        let currentToolUse: any = null;
+        let currentToolUse: ToolUseAccumulator | null = null;
         let currentToolJson = '';
 
         for await (const event of stream) {
@@ -148,8 +181,8 @@ export class AnthropicDriver implements AgentDriver {
           if (event.type === 'content_block_start') {
             if (event.content_block?.type === 'tool_use') {
               currentToolUse = {
-                id: event.content_block.id,
-                name: event.content_block.name,
+                id: event.content_block.id ?? '',
+                name: event.content_block.name ?? '',
                 input: {},
               };
               currentToolJson = '';
@@ -157,16 +190,16 @@ export class AnthropicDriver implements AgentDriver {
           }
           if (event.type === 'content_block_delta') {
             if (event.delta?.type === 'text_delta') {
-              textBlocks.push(event.delta.text);
-              if (onChunk) onChunk(event.delta.text);
+              textBlocks.push(event.delta.text ?? '');
+              if (onChunk) onChunk(event.delta.text ?? '');
             }
             if (event.delta?.type === 'input_json_delta' && currentToolUse) {
-              currentToolJson += event.delta.partial_json;
+              currentToolJson += event.delta.partial_json ?? '';
             }
           }
           if (event.type === 'content_block_stop' && currentToolUse) {
             try {
-              currentToolUse.input = JSON.parse(currentToolJson || '{}');
+              currentToolUse.input = JSON.parse(currentToolJson || '{}') as Record<string, unknown>;
             } catch {
               currentToolUse.input = {};
             }
@@ -176,18 +209,22 @@ export class AnthropicDriver implements AgentDriver {
           }
         }
       } else {
-        const response: any = await this.semaphore.run(() =>
+        const response = (await this.semaphore.run(() =>
           this.retry.execute(() => client.messages.create(requestParams))
-        );
+        )) as AnthropicMessagesResponse;
 
         totalInputTokens += response.usage?.input_tokens ?? 0;
         totalOutputTokens += response.usage?.output_tokens ?? 0;
 
         for (const block of response.content) {
           if (block.type === 'text') {
-            textBlocks.push(block.text);
+            textBlocks.push(block.text ?? '');
           } else if (block.type === 'tool_use') {
-            toolUseBlocks.push(block);
+            toolUseBlocks.push({
+              id: block.id ?? '',
+              name: block.name ?? '',
+              input: (block.input as Record<string, unknown>) ?? {},
+            });
           }
         }
       }
@@ -267,11 +304,11 @@ export class AnthropicDriver implements AgentDriver {
     const client = await this.getClient();
     const start = performance.now();
     try {
-      const response = await client.messages.create({
+      const response = (await client.messages.create({
         model: this.model,
         max_tokens: 1,
         messages: [{ role: 'user', content: 'ping' }],
-      });
+      })) as AnthropicMessagesResponse;
       return {
         ok: true,
         latencyMs: performance.now() - start,

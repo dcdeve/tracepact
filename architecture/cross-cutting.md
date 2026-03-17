@@ -22,7 +22,7 @@
 ### Validation
 - **Estrategia:** Boundary validation only
 - **Implementación:** `[OBSERVED]` `parseSkill()` validates frontmatter structure and file size. `defineConfig()` applies defaults. `loadScenarios()` validates that input is an array with `name` fields.
-- **Gaps:** `[INFERRED]` `MockSandbox.executeTool()` does not validate tool args against the declared JSON schema — an agent passing wrong types would get whatever the mock returns, not a schema error.
+- **Gaps:** `[OBSERVED]` `MockSandbox.executeTool()` validates tool args against the declared JSON schema only when `strict: true` is passed in `MockSandboxOptions` **and** the tool is registered as a `MockToolEntry` (i.e., an object with `impl` + `schema`). Tools registered as plain functions (no schema) are never validated even in strict mode. By default `strict` is `false` (backward-compatible), so without opt-in an agent passing wrong types gets whatever the mock returns rather than a schema error.
 
 ### Token Budget
 - **Estrategia:** Opt-in via `TRACEPACT_BUDGET`

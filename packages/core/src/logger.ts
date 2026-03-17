@@ -13,6 +13,16 @@ export function setLogLevel(level: LogLevel): void {
   currentLevel = level;
 }
 
+export function withLogLevel<T>(level: LogLevel, fn: () => T): T {
+  const previous = currentLevel;
+  currentLevel = level;
+  try {
+    return fn();
+  } finally {
+    currentLevel = previous;
+  }
+}
+
 export function initLogLevelFromEnv(): void {
   const env = process.env.TRACEPACT_LOG;
   if (env && env in LEVEL_ORDER) {

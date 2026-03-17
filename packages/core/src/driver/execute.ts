@@ -17,6 +17,12 @@ import type { RunConfig, RunResult } from './types.js';
 // (i.e. no per-call providers override that would produce a different TracepactConfig).
 const _registryCache = new Map<string, DriverRegistry>();
 
+/** Clear the module-level registry cache. Call this in test teardown (e.g. afterAll) to
+ * prevent stale registries from leaking across test suites that change env vars. */
+export function clearRegistryCache(): void {
+  _registryCache.clear();
+}
+
 export interface ExecutePromptOptions {
   prompt: string;
   sandbox?: MockSandbox;
@@ -29,6 +35,11 @@ export interface ExecutePromptOptions {
   replay?: string;
   /** Stubs to apply when replaying a cassette */
   stubs?: CassetteStub[];
+  /**
+   * When true (default), replay throws if the current prompt differs from the recorded one.
+   * Set to false to allow replaying cassettes recorded with a different prompt (opt-out).
+   */
+  replayStrict?: boolean;
   /** Override provider detection */
   provider?: string;
   /** Run a health check against the provider before executing. Logs result to stderr. */
@@ -56,7 +67,7 @@ export async function executePrompt(
 
   // 3. Replay mode
   if (opts.replay) {
-    const player = new CassettePlayer(opts.replay, opts.stubs);
+    const player = new CassettePlayer(opts.replay, opts.stubs, opts.replayStrict ?? true);
     return player.replay(opts.prompt);
   }
 
@@ -99,7 +110,7 @@ export async function executePrompt(
   // 4a. Cache lookup (skip if --no-cache / TRACEPACT_NO_CACHE=1)
   const cacheDisabled = process.env.TRACEPACT_NO_CACHE === '1';
   const cacheConfig = { ...config.cache, enabled: config.cache.enabled && !cacheDisabled };
-  const cache = new CacheStore(cacheConfig);
+  const cache = new CacheStore(cacheConfig, config.redaction);
 
   const cachedEntry = await cache.get(
     // We need a manifest to look up the cache. Build a minimal one from what we know pre-run.
@@ -135,12 +146,14 @@ export async function executePrompt(
 
   // 4b. Populate cache with the actual manifest produced by the driver.
   await cache.set(result.runManifest, result);
-  if (cache.writeFailures > 0) {
+  const cacheStatus: RunResult['cacheStatus'] = cache.writeFailures > 0 ? 'failed' : 'ok';
+  if (cacheStatus === 'failed') {
     log.warn(
       `Cache: ${cache.writeFailures} write failure(s) during this run. ` +
         `All cache entries were lost. Check that "${config.cache.dir}" is writable.`
     );
   }
+  const resultWithCacheStatus: RunResult = { ...result, cacheStatus };
 
   // 5. Record cassette if requested
   if (opts.record) {
@@ -159,7 +172,7 @@ export async function executePrompt(
     });
   }
 
-  return result;
+  return resultWithCacheStatus;
 }
 
 function computeSkillHash(skill: ParsedSkill | { systemPrompt: string }): string {

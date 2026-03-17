@@ -50,13 +50,20 @@ const result = await runSkill(skill, {
   "metadata": {
     "skillHash": "...",
     "prompt": "deploy to staging",
+    "promptHash": "...",
+    "toolDefsHash": "...",
     "provider": "openai",
-    "model": "gpt-4o"
+    "model": "gpt-4o",
+    "temperature": 0,
+    "frameworkVersion": "...",
+    "driverVersion": "..."
   },
   "result": {
     "output": "...",
-    "trace": { "calls": [...] },
-    "usage": { "inputTokens": 850, "outputTokens": 120 }
+    "trace": { "calls": [...], "totalCalls": 3, "totalDurationMs": 1200 },
+    "messages": [...],
+    "usage": { "inputTokens": 850, "outputTokens": 120, "model": "gpt-4o", "modelVersion": "gpt-4o-2024-08-06" },
+    "duration": 3400
   }
 }
 ```

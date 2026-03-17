@@ -38,9 +38,9 @@ test('agent reads config before deploying', async () => {
     replay: './cassettes/deploy.json',
   });
 
-  expect(result).toHaveCalledTool('read_file');
-  expect(result).toHaveCalledTool('bash');
-  expect(result).toHaveCalledToolsInOrder(['read_file', 'bash']);
+  expect(result.trace).toHaveCalledTool('read_file');
+  expect(result.trace).toHaveCalledTool('bash');
+  expect(result.trace).toHaveCalledToolsInOrder(['read_file', 'bash']);
 });
 ```
 

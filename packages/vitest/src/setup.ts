@@ -2,17 +2,23 @@ import {
   DriverRegistry,
   PROVIDER_ENV_KEYS,
   clearEmbeddingCache,
+  clearRegistryCache,
   defineConfig,
   detectProvider,
   resetCache,
 } from '@tracepact/core';
-import { afterAll, expect } from 'vitest';
+import { afterAll, beforeEach, expect } from 'vitest';
 import { tracepactMatchers } from './matchers.js';
 
 expect.extend(tracepactMatchers);
 
+beforeEach(() => {
+  clearEmbeddingCache();
+});
+
 afterAll(() => {
   clearEmbeddingCache();
+  clearRegistryCache();
   resetCache();
 });
 
@@ -42,6 +48,7 @@ if (process.env.TRACEPACT_LIVE === '1') {
 
     const config = defineConfig({ providers });
     const registry = new DriverRegistry(config);
+    registry.validateAll();
     const driver = registry.get(providerName);
     const health = await driver.healthCheck();
 

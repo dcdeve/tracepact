@@ -4,7 +4,7 @@ import type { MatcherResult } from '../types.js';
 import { extractJson } from '../utils/json-extractor.js';
 import { tokenizeMarkdown } from '../utils/markdown-tokenizer.js';
 
-interface MarkdownSpec {
+export interface MarkdownSpec {
   headings?: Array<{ level?: number; text?: string | RegExp }>;
   codeBlocks?: { min?: number; lang?: string };
   lists?: { min?: number };
@@ -86,7 +86,7 @@ export function toHaveMarkdownStructure(output: string, spec: MarkdownSpec): Mat
   };
 }
 
-interface JsonSchemaSpec {
+export interface JsonSchemaSpec {
   /** Zod-compatible: schema.safeParse(data) → { success, error? } */
   safeParse?: (data: unknown) => {
     success: boolean;
@@ -154,7 +154,7 @@ export function toMatchJsonSchema(output: string, schema: JsonSchemaSpec): Match
   };
 }
 
-interface LineCountSpec {
+export interface LineCountSpec {
   min?: number;
   max?: number;
   exact?: number;

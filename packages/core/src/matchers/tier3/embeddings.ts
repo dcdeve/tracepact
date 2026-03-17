@@ -40,7 +40,7 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 /**
  * Estimate token usage for embedding based on character count (~4 chars per token).
  */
-export function estimateEmbeddingTokens(_provider: EmbeddingProvider, ...texts: string[]): number {
+export function estimateEmbeddingTokens(...texts: string[]): number {
   const totalChars = texts.reduce((sum, t) => sum + t.length, 0);
   return Math.ceil(totalChars / 4);
 }

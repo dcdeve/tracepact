@@ -1,7 +1,7 @@
 # Architecture — Tracepact
 
-> Documentación modular generada a partir de `architecture.md`.
 > Marcadores: `[OBSERVED]` = visto en código, `[INFERRED]` = deducido, `[UNCLEAR]` = no determinado.
+> Bloques `<!-- BEGIN:GENERATED -->` en cada archivo son auto-generados por `make arch` — no editar a mano.
 
 ## Executive Summary
 
@@ -9,20 +9,23 @@ Tracepact is a **testing framework for LLM-powered skills (AI agents)** — it l
 
 ## Mapa de navegación
 
-| Documento | Qué encontrás ahí | Cuándo leerlo |
-|-----------|-------------------|---------------|
-| [shape.md](./shape.md) | Estructura del repo, diagrama de dependencias | Entender la organización general |
-| [entrypoints.md](./entrypoints.md) | Puntos de entrada del sistema | Saber dónde arranca la ejecución |
-| [components-drivers.md](./components-drivers.md) | `AgentDriver`, `AnthropicDriver`, `OpenAIDriver`, `DriverRegistry`, `RetryPolicy`, `Semaphore` | Entender el subsistema de providers |
-| [components-testing.md](./components-testing.md) | `MockSandbox`, `Matcher System` (Tier 0–4), `CassetteRecorder/Player`, `CacheStore` | Entender el core de testing |
-| [components-tooling.md](./components-tooling.md) | `AuditEngine`, `McpClient`, `tracepactPlugin`, `RedactionPipeline` | Entender herramientas y adapters de integración |
-| [interfaces.md](./interfaces.md) | Contratos entre módulos | Entender los boundaries |
-| [flows.md](./flows.md) | Flujos de ejecución con diagramas | Seguir un request/comando end-to-end |
-| [dependencies.md](./dependencies.md) | Deps externas e internas | Evaluar footprint de dependencias |
-| [wiring.md](./wiring.md) | DI, config, env vars, registries | Entender cómo se ensambla todo |
-| [cross-cutting.md](./cross-cutting.md) | Error handling, auth, logging, validación, token budget | Concerns transversales |
-| [tech-debt.md](./tech-debt.md) | Deuda técnica y riesgos | Priorizar mejoras |
-| [inventory.md](./inventory.md) | Lista completa de módulos secundarios | Buscar algo específico |
+| Documento | Qué encontrás ahí | Cuándo leerlo | Tipo |
+|-----------|-------------------|---------------|------|
+| [shape.md](./shape.md) | Estructura del repo, diagrama de dependencias | Entender la organización general | mixto |
+| [entrypoints.md](./entrypoints.md) | Puntos de entrada del sistema | Saber dónde arranca la ejecución | mixto |
+| [components-drivers.md](./components-drivers.md) | `AgentDriver`, `AnthropicDriver`, `OpenAIDriver`, `DriverRegistry`, `RetryPolicy`, `Semaphore` | Entender el subsistema de providers | mixto |
+| [components-testing.md](./components-testing.md) | `MockSandbox`, `Matcher System` (Tier 0–4), `CassetteRecorder/Player`, `CacheStore` | Entender el core de testing | mixto |
+| [components-tooling.md](./components-tooling.md) | `AuditEngine`, `McpClient`, `tracepactPlugin`, `RedactionPipeline` | Entender herramientas y adapters de integración | mixto |
+| [interfaces.md](./interfaces.md) | Contratos entre módulos | Entender los boundaries | mixto |
+| [flows.md](./flows.md) | Flujos de ejecución con diagramas | Seguir un request/comando end-to-end | conceptual |
+| [dependencies.md](./dependencies.md) | Deps externas e internas | Evaluar footprint de dependencias | mixto |
+| [wiring.md](./wiring.md) | DI, config, env vars, registries | Entender cómo se ensambla todo | conceptual |
+| [cross-cutting.md](./cross-cutting.md) | Error handling, auth, logging, validación, token budget | Concerns transversales | conceptual |
+| [tech-debt.md](./tech-debt.md) | Deuda técnica y riesgos | Priorizar mejoras | conceptual |
+| [inventory.md](./inventory.md) | Lista completa de módulos secundarios | Buscar algo específico | mixto |
+| [signatures.md](./signatures.md) | Firmas exportadas (funciones y clases) — 100% generado | Referencia rápida de API pública | referencia |
+| [env-vars.md](./env-vars.md) | Variables de entorno — 100% generado | Ver qué env vars usa el sistema | referencia |
+| [import-graph.md](./import-graph.md) | Grafo de imports entre paquetes — 100% generado | Analizar dependencias entre packages | referencia |
 
 ## Diagrama de alto nivel
 

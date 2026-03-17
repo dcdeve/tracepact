@@ -1,6 +1,6 @@
 import type { RunManifest } from '../cache/run-manifest.js';
 import type { ParsedSkill } from '../parser/types.js';
-import type { MockSandbox } from '../sandbox/mock-sandbox.js';
+import type { Sandbox } from '../sandbox/types.js';
 import type { TypedToolDefinition } from '../tools/types.js';
 import type { ToolTrace } from '../trace/types.js';
 
@@ -31,7 +31,7 @@ export interface RunInput {
   skill: ParsedSkill | { systemPrompt: string };
   prompt: string;
   tools?: TypedToolDefinition[];
-  sandbox: MockSandbox;
+  sandbox: Sandbox;
   conversation?: Message[];
   config?: RunConfig;
 }
@@ -55,6 +55,9 @@ export interface RunResult {
   usage: UsageInfo;
   duration: number;
   runManifest: RunManifest;
+  /** Indicates whether the result was written to cache after a live LLM call.
+   * Absent when the result came from a cache hit or cassette replay. */
+  cacheStatus?: 'ok' | 'failed';
 }
 
 export interface UsageInfo {

@@ -48,19 +48,25 @@ tracepact audit SKILL.md --format json
 ## Testing skills.sh SKILLs with mock tools
 
 ```typescript
-import { describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test } from 'vitest';
 import { createMockTools, mockReadFile, parseSkill, denyAll } from '@tracepact/vitest';
+import type { ParsedSkill, MockToolSandbox } from '@tracepact/vitest';
 
-const skill = await parseSkill('./SKILL.md');
+let skill: ParsedSkill;
+let sandbox: MockToolSandbox;
 
-const sandbox = createMockTools({
-  read_file: mockReadFile({
-    'src/index.ts': 'export const main = () => "hello";',
-  }),
-  bash: denyAll(),
+beforeAll(async () => {
+  skill = await parseSkill('./SKILL.md');
+
+  sandbox = createMockTools({
+    read_file: mockReadFile({
+      'src/index.ts': 'export const main = () => "hello";',
+    }),
+    bash: denyAll(),
+  });
 });
 
-describe(skill.frontmatter.name, () => {
+describe('SKILL.md', () => {
   test('skill parsed successfully', () => {
     expect(skill.parseWarnings).toHaveLength(0);
     expect(skill.frontmatter.name).toBeDefined();

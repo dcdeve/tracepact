@@ -12,6 +12,47 @@ import type {
   RunResult,
 } from './types.js';
 
+/** Minimal shape of a non-streaming OpenAI chat completion response used by this driver. */
+interface OpenAIChatCompletion {
+  model: string;
+  system_fingerprint?: string | null;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  choices: Array<{
+    message: {
+      content?: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: 'function';
+        function: { name: string; arguments: string };
+      }>;
+    };
+  }>;
+}
+
+/** Minimal shape of a streaming OpenAI chunk used by this driver. */
+interface OpenAIStreamChunk {
+  choices?: Array<{
+    delta?: {
+      content?: string | null;
+      tool_calls?: Array<{
+        index?: number;
+        id?: string;
+        function?: { name?: string; arguments?: string };
+      }>;
+    };
+  }>;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+}
+
+/** Minimal structural interface for the openai SDK client used by this driver. */
+interface OpenAIClient {
+  chat: {
+    completions: {
+      create(params: Record<string, unknown>): Promise<unknown>;
+    };
+  };
+}
+
 export class OpenAIDriver implements AgentDriver {
   readonly name: string;
   readonly capabilities: DriverCapabilities = {
@@ -22,7 +63,7 @@ export class OpenAIDriver implements AgentDriver {
     maxContextWindow: 128_000,
   };
 
-  private client: any = null;
+  private client: OpenAIClient | null = null;
   private apiKey: string;
   private baseURL: string | undefined;
   private model: string;
@@ -53,11 +94,11 @@ export class OpenAIDriver implements AgentDriver {
   }
 
   /** @internal — allows injecting a mock client for testing */
-  _setClient(mockClient: any): void {
+  _setClient(mockClient: OpenAIClient): void {
     this.client = mockClient;
   }
 
-  private async getClient(): Promise<any> {
+  private async getClient(): Promise<OpenAIClient> {
     if (!this.client) {
       let OpenAI: any;
       try {
@@ -69,9 +110,9 @@ export class OpenAIDriver implements AgentDriver {
       if (this.baseURL) {
         opts.baseURL = this.baseURL;
       }
-      this.client = new OpenAI(opts);
+      this.client = new OpenAI(opts) as OpenAIClient;
     }
-    return this.client;
+    return this.client as OpenAIClient;
   }
 
   async run(input: RunInput): Promise<RunResult> {
@@ -106,7 +147,14 @@ export class OpenAIDriver implements AgentDriver {
 
     if (input.conversation) {
       for (const msg of input.conversation) {
-        messages.push({ role: msg.role, content: msg.content as string });
+        if (msg.role === 'system') continue;
+        if (Array.isArray(msg.content)) {
+          throw new DriverError(
+            'OpenAI driver does not support ContentBlock[] in conversation messages. ' +
+              'Only string content is supported for multi-turn resumption with OpenAI.'
+          );
+        }
+        messages.push({ role: msg.role, content: msg.content });
       }
     }
 
@@ -153,7 +201,7 @@ export class OpenAIDriver implements AgentDriver {
         await this.executeToolCalls(result.toolCalls, input.sandbox, messages);
       } else {
         // Non-streaming mode (original)
-        const response: any = await this.semaphore.run(() =>
+        const response = (await this.semaphore.run(() =>
           this.retry.execute(() =>
             client.chat.completions.create({
               model: this.model,
@@ -164,7 +212,7 @@ export class OpenAIDriver implements AgentDriver {
               tools: apiTools.length > 0 ? apiTools : undefined,
             })
           )
-        );
+        )) as OpenAIChatCompletion;
 
         totalInputTokens += response.usage?.prompt_tokens ?? 0;
         totalOutputTokens += response.usage?.completion_tokens ?? 0;
@@ -229,9 +277,13 @@ export class OpenAIDriver implements AgentDriver {
   }
 
   private async executeToolCalls(
-    toolCalls: any[],
+    toolCalls: Array<{
+      id: string;
+      type: 'function';
+      function: { name: string; arguments: string };
+    }>,
     sandbox: RunInput['sandbox'],
-    messages: any[]
+    messages: unknown[]
   ): Promise<void> {
     for (const toolCall of toolCalls) {
       const fnName = toolCall.function.name;
@@ -256,20 +308,24 @@ export class OpenAIDriver implements AgentDriver {
   }
 
   private async runStreaming(
-    client: any,
-    messages: any[],
-    apiTools: any[],
+    client: OpenAIClient,
+    messages: unknown[],
+    apiTools: unknown[],
     temperature: number,
     maxTokens: number,
     seed?: number,
     onChunk?: (chunk: string) => void
   ): Promise<{
     content: string;
-    toolCalls: any[];
+    toolCalls: Array<{
+      id: string;
+      type: 'function';
+      function: { name: string; arguments: string };
+    }>;
     inputTokens: number;
     outputTokens: number;
   }> {
-    const stream: any = await this.semaphore.run(() =>
+    const stream = (await this.semaphore.run(() =>
       this.retry.execute(() =>
         client.chat.completions.create({
           model: this.model,
@@ -282,7 +338,7 @@ export class OpenAIDriver implements AgentDriver {
           stream_options: { include_usage: true },
         })
       )
-    );
+    )) as AsyncIterable<OpenAIStreamChunk>;
 
     let content = '';
     const toolCallMap = new Map<
@@ -332,16 +388,17 @@ export class OpenAIDriver implements AgentDriver {
     const client = await this.getClient();
     const start = performance.now();
     try {
-      const response = await client.chat.completions.create({
+      const response = (await client.chat.completions.create({
         model: this.model,
         max_tokens: 1,
         messages: [{ role: 'user', content: 'ping' }],
-      });
+      })) as OpenAIChatCompletion;
+      const modelVersion = response.system_fingerprint ?? undefined;
       return {
         ok: true,
         latencyMs: performance.now() - start,
         model: response.model,
-        modelVersion: response.system_fingerprint ?? undefined,
+        ...(modelVersion !== undefined ? { modelVersion } : {}),
       };
     } catch (err: any) {
       return {

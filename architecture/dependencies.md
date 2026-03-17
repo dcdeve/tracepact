@@ -27,3 +27,141 @@
 | `core/src/logger.ts` | All core modules | Centralized logging |
 | `core/src/errors/` | All core modules | Typed error hierarchy |
 | `core/src/config/` | All packages | `TracepactConfig` schema + `defineConfig()` |
+
+---
+
+## Complete listing (all packages)
+
+<!-- BEGIN:GENERATED -->
+_Auto-generated from code — do not edit this block manually._
+
+> Auto-extracted from package.json files across the monorepo
+
+### Root devDependencies
+
+| Package | Version |
+|---------|---------|
+| `@biomejs/biome` | `^1.9.0` |
+| `@changesets/changelog-github` | `^0.6.0` |
+| `@changesets/cli` | `^2.30.0` |
+| `husky` | `^9.1.7` |
+| `ts-morph` | `^24.0.0` |
+| `tsx` | `^4.21.0` |
+| `typescript` | `^5.5.0` |
+| `vitepress` | `^1.6.4` |
+
+## `packages/cli`
+
+### Production
+
+| Package | Version |
+|---------|---------|
+| `@clack/prompts` | `^1.1.0` |
+| `@tracepact/core` | `0.5.0` |
+| `commander` | `^14.0.3` |
+
+### Dev
+
+| Package | Version |
+|---------|---------|
+| `@types/node` | `^25.3.5` |
+| `tsup` | `^8.0.0` |
+| `typescript` | `^5.5.0` |
+| `vitest` | `^2.1.0` |
+
+## `packages/core`
+
+### Production
+
+| Package | Version |
+|---------|---------|
+| `@modelcontextprotocol/sdk` | `^1.27.1` |
+| `openai` | `^6.27.0` |
+| `stemmer` | `^2.0.1` |
+| `yaml` | `^2.6.0` |
+
+### Dev
+
+| Package | Version |
+|---------|---------|
+| `@modelcontextprotocol/server-filesystem` | `^2026.1.14` |
+| `tsup` | `^8.3.0` |
+| `typescript` | `^5.5.0` |
+| `vitest` | `^2.1.0` |
+| `zod` | `^3.23.0` |
+
+### Peer
+
+| Package | Version |
+|---------|---------|
+| `@anthropic-ai/sdk` | `>=0.30.0` |
+| `zod` | `>=3.22.0` |
+
+## `packages/mcp-server`
+
+### Production
+
+| Package | Version |
+|---------|---------|
+| `@modelcontextprotocol/sdk` | `^1.27.1` |
+| `@tracepact/core` | `0.5.0` |
+
+### Dev
+
+| Package | Version |
+|---------|---------|
+| `@types/node` | `^25.3.5` |
+| `tsup` | `^8.0.0` |
+| `typescript` | `^5.5.0` |
+| `vitest` | `^2.1.0` |
+
+### Peer
+
+| Package | Version |
+|---------|---------|
+| `zod` | `>=3.22.0` |
+
+## `packages/promptfoo`
+
+### Production
+
+| Package | Version |
+|---------|---------|
+| `@tracepact/core` | `0.5.0` |
+
+### Dev
+
+| Package | Version |
+|---------|---------|
+| `tsup` | `^8.3.0` |
+| `typescript` | `^5.5.0` |
+| `vitest` | `^2.1.0` |
+
+### Peer
+
+| Package | Version |
+|---------|---------|
+| `promptfoo` | `>=0.80.0` |
+
+## `packages/vitest`
+
+### Production
+
+| Package | Version |
+|---------|---------|
+| `@tracepact/core` | `0.5.0` |
+
+### Dev
+
+| Package | Version |
+|---------|---------|
+| `tsup` | `^8.3.0` |
+| `typescript` | `^5.5.0` |
+| `vitest` | `^2.1.0` |
+
+### Peer
+
+| Package | Version |
+|---------|---------|
+| `vitest` | `>=2.0.0` |
+<!-- END:GENERATED -->

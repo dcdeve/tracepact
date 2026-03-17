@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { CacheConfig } from '../config/types.js';
+import type { CacheConfig, RedactionConfig } from '../config/types.js';
 import { log } from '../logger.js';
 import { RedactionPipeline } from '../redaction/pipeline.js';
 import { type RunManifest, manifestHash } from './run-manifest.js';
@@ -31,12 +31,12 @@ export class CacheStore {
   private readonly redaction: RedactionPipeline;
   private _writeFailures = 0;
 
-  constructor(config: CacheConfig) {
+  constructor(config: CacheConfig, redactionConfig?: RedactionConfig) {
     this.enabled = config.enabled;
     this.dir = config.dir;
     this.ttlSeconds = config.ttlSeconds;
     this.verifyOnRead = config.verifyOnRead;
-    this.redaction = new RedactionPipeline();
+    this.redaction = new RedactionPipeline(redactionConfig);
   }
 
   get writeFailures(): number {

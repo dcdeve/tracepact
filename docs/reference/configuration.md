@@ -39,7 +39,7 @@ export default defineConfig({
   cache: {
     enabled: true,              // set to false to disable caching entirely (no reads or writes)
     dir: '.tracepact/cache',
-    ttlSeconds: 86400,
+    ttlSeconds: 604800,
     verifyOnRead: true,
   },
   redaction: {

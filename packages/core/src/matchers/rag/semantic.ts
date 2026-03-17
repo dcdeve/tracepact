@@ -101,7 +101,7 @@ export async function toHaveGroundedResponseIn(
     }
   }
 
-  const tokens = estimateEmbeddingTokens(options.provider, ...allTexts);
+  const tokens = estimateEmbeddingTokens(...allTexts);
 
   if (maxSimilarity >= threshold) {
     return {
@@ -186,7 +186,7 @@ export async function toNotHaveHallucinated(
     }
   }
 
-  const tokens = estimateEmbeddingTokens(options.provider, ...allTexts);
+  const tokens = estimateEmbeddingTokens(...allTexts);
 
   if (unsupported.length === 0) {
     return {
@@ -267,7 +267,7 @@ export async function toHaveRetrievalScore(
     totalSim += cosineSimilarity(queryEmb, embeddings[i + 1] as number[]);
   }
   const avgScore = totalSim / docs.length;
-  const tokens = estimateEmbeddingTokens(options.provider, ...allTexts);
+  const tokens = estimateEmbeddingTokens(...allTexts);
 
   if (avgScore >= threshold) {
     return {

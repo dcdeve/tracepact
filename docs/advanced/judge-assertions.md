@@ -7,7 +7,7 @@ LLM-as-judge evaluates agent output against natural language criteria.
 ```typescript
 expect(result).toPassJudge(
   'The agent correctly identified the security vulnerability and suggested a fix',
-  { model: 'claude-haiku-4-5-20251001' }
+  { driver, model: 'claude-haiku-4-5-20251001' }
 );
 ```
 
@@ -22,6 +22,7 @@ expect(result).toMatchTrajectory({
   order: ['read_file', 'bash', 'write_file'],
   judge: {
     criteria: 'The agent followed a safe deployment workflow',
+    driver,
   },
 });
 ```
@@ -30,9 +31,9 @@ T0 constraints are checked first. If they fail, no LLM call is made.
 
 ## Cost
 
-~500 tokens per judge assertion. **Not recommended for CI gates** — use for monitoring only.
+~1024 tokens per judge assertion. **Not recommended for CI gates** — use for monitoring only.
 
 ## Requirements
 
-- `OPENAI_API_KEY` environment variable
+- `ANTHROPIC_API_KEY` environment variable
 - `--full` flag to enable

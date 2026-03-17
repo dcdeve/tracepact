@@ -27,6 +27,7 @@ export { RedactionPipeline } from './redaction/pipeline.js';
 
 // Sandbox
 export { MockSandbox } from './sandbox/mock-sandbox.js';
+export type { MockSandboxOptions } from './sandbox/mock-sandbox.js';
 export {
   createMockTools,
   mockReadFile,
@@ -36,7 +37,14 @@ export {
   mockBash,
   passthrough,
 } from './sandbox/factories.js';
-export type { MockToolImpl, MockToolDefs, WriteCapture, MockBashResult } from './sandbox/types.js';
+export type {
+  Sandbox,
+  MockToolImpl,
+  MockToolEntry,
+  MockToolDefs,
+  WriteCapture,
+  MockBashResult,
+} from './sandbox/types.js';
 
 // Container Sandbox
 export {
@@ -72,7 +80,7 @@ export { OpenAIDriver } from './driver/openai-driver.js';
 export { AnthropicDriver } from './driver/anthropic-driver.js';
 export { DriverRegistry } from './driver/registry.js';
 export { detectProvider, resolveConfig, getDefaultModel } from './driver/resolve.js';
-export { executePrompt, type ExecutePromptOptions } from './driver/execute.js';
+export { executePrompt, clearRegistryCache, type ExecutePromptOptions } from './driver/execute.js';
 export { PROVIDER_PRESETS, PROVIDER_ENV_KEYS, type ProviderPreset } from './driver/presets.js';
 export type {
   AgentDriver,
@@ -88,6 +96,7 @@ export type {
 
 // Matchers
 export type { MatcherResult, MatcherContext, ArgMismatch } from './matchers/index.js';
+export type { MarkdownSpec, JsonSchemaSpec, LineCountSpec } from './matchers/tier1/index.js';
 export {
   matchArgs,
   toHaveCalledTool,
@@ -191,7 +200,12 @@ export type {
 export { TokenAccumulator, type TokenEntry, type TokenReport } from './cost/accumulator.js';
 
 // Scenarios
-export { loadScenarios, type Scenario } from './scenarios/loader.js';
+export {
+  loadScenarios,
+  registerScenarioParser,
+  type Scenario,
+  type ScenarioParser,
+} from './scenarios/loader.js';
 
 // Flake
 export { FlakeStore } from './flake/store.js';
@@ -237,4 +251,4 @@ export { ConfigError } from './errors/config-error.js';
 export { DriverError } from './errors/driver-error.js';
 
 // Logger
-export { log, setLogLevel } from './logger.js';
+export { log, setLogLevel, withLogLevel } from './logger.js';

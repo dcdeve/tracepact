@@ -45,12 +45,23 @@ export async function embedWithCache(
 
   if (uncached.length > 0) {
     const embeddings = await provider.embed(uncached);
+    if (embeddings.length !== uncached.length) {
+      throw new Error(
+        `Embedding provider returned ${embeddings.length} embeddings for ${uncached.length} inputs.`
+      );
+    }
     for (let i = 0; i < uncached.length; i++) {
       globalEmbeddingCache.set(uncached[i] as string, embeddings[i] as number[]);
     }
   }
 
-  return texts.map((t) => globalEmbeddingCache.get(t) as number[]);
+  return texts.map((t) => {
+    const embedding = globalEmbeddingCache.get(t);
+    if (embedding === undefined) {
+      throw new Error(`Embedding not found in cache for text: "${t.slice(0, 50)}"`);
+    }
+    return embedding;
+  });
 }
 
 /** Clear the shared global embedding cache (call between test suites if needed). */

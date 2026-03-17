@@ -22,9 +22,23 @@ export async function toBeSemanticallySimilar(
   const threshold = options.threshold ?? 0.8;
   const provider = options.provider;
 
-  const [outputEmb, refEmb] = await embedWithCache(provider, [output, reference]);
-  const similarity = cosineSimilarity(outputEmb as number[], refEmb as number[]);
-  const tokens = estimateEmbeddingTokens(provider, output, reference);
+  let outputEmb: number[];
+  let refEmb: number[];
+  try {
+    const embeddings = await embedWithCache(provider, [output, reference]);
+    outputEmb = embeddings[0] as number[];
+    refEmb = embeddings[1] as number[];
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      pass: false,
+      message: `API unavailable: ${message}`,
+      tier: 3,
+      diagnostic: { expected: threshold, received: 'API error', tokens: 0 },
+    };
+  }
+  const similarity = cosineSimilarity(outputEmb, refEmb);
+  const tokens = estimateEmbeddingTokens(output, reference);
 
   if (similarity >= threshold) {
     return {
@@ -69,7 +83,18 @@ export async function toHaveSemanticOverlap(
   const provider = options.provider;
 
   const allTexts = [output, ...topics];
-  const embeddings = await embedWithCache(provider, allTexts);
+  let embeddings: (number[] | undefined)[];
+  try {
+    embeddings = await embedWithCache(provider, allTexts);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      pass: false,
+      message: `API unavailable: ${message}`,
+      tier: 3,
+      diagnostic: { expected: minTopics, received: 'API error', tokens: 0 },
+    };
+  }
   const outputEmb = embeddings[0] as number[];
 
   const results = topics.map((topic, i) => ({
@@ -78,7 +103,7 @@ export async function toHaveSemanticOverlap(
   }));
 
   const matched = results.filter((r) => r.similarity >= threshold);
-  const tokens = estimateEmbeddingTokens(provider, ...allTexts);
+  const tokens = estimateEmbeddingTokens(...allTexts);
 
   if (matched.length >= minTopics) {
     return {

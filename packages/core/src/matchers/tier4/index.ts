@@ -35,7 +35,22 @@ export async function toPassJudge(
 
   const config: JudgeConfig = { criteria, ...options };
   const executor = new JudgeExecutor(driver);
-  const result = await executor.evaluate(output, config);
+  let result: Awaited<ReturnType<typeof executor.evaluate>>;
+  try {
+    result = await executor.evaluate(output, config);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      pass: false,
+      message: `API unavailable: ${message}`,
+      tier: 4,
+      diagnostic: {
+        expected: criteria,
+        received: 'API error',
+        tokens: 0,
+      },
+    };
+  }
 
   if (result.pass) {
     return {

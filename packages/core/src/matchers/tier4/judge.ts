@@ -32,6 +32,46 @@ export interface JudgeResult {
   consensus: { passed: number; failed: number; total: number };
 }
 
+function extractFirstValidJson(text: string): string | null {
+  let start = text.indexOf('{');
+  while (start !== -1) {
+    let depth = 0;
+    let inString = false;
+    let isEscaped = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (isEscaped) {
+        isEscaped = false;
+        continue;
+      }
+      if (ch === '\\' && inString) {
+        isEscaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          const candidate = text.slice(start, i + 1);
+          try {
+            JSON.parse(candidate);
+            return candidate;
+          } catch {
+            break;
+          }
+        }
+      }
+    }
+    start = text.indexOf('{', start + 1);
+  }
+  return null;
+}
+
 export class JudgeExecutor {
   private driver: AgentDriver;
 
@@ -93,11 +133,10 @@ export class JudgeExecutor {
       throw new Error(`Judge API call failed: ${message}`, { cause: err });
     }
 
-    const jsonMatch =
-      result.output.match(/```json\s*\n([\s\S]*?)```/) ??
-      result.output.match(/(\{[\s\S]*"pass"[\s\S]*\})/);
+    const fenceMatch = result.output.match(/```json\s*\n([\s\S]*?)```/);
+    const rawCandidate = fenceMatch ? (fenceMatch[1] ?? '') : extractFirstValidJson(result.output);
 
-    if (!jsonMatch) {
+    if (rawCandidate === null) {
       log.warn('Judge returned non-JSON response. Treating as fail.');
       return {
         pass: false,
@@ -109,7 +148,7 @@ export class JudgeExecutor {
     }
 
     try {
-      const parsed = JSON.parse(jsonMatch[1] ?? jsonMatch[0]);
+      const parsed = JSON.parse(rawCandidate);
       return {
         pass: Boolean(parsed.pass),
         confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0)),
@@ -118,7 +157,7 @@ export class JudgeExecutor {
         tokens: result.usage.inputTokens + result.usage.outputTokens,
       };
     } catch {
-      log.warn('Judge returned malformed JSON. Treating as fail.');
+      log.warn(`Judge returned malformed JSON. Extracted text: ${rawCandidate}. Treating as fail.`);
       return {
         pass: false,
         confidence: 0,

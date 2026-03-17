@@ -14,6 +14,23 @@ const NATIVE_DRIVERS: Record<string, DriverConstructor> = {
   anthropic: AnthropicDriver,
 };
 
+/**
+ * Register a custom driver constructor for a provider name.
+ *
+ * Call this before constructing a DriverRegistry (or before any executePrompt call).
+ * The registered constructor will be used instead of the OpenAI-compatible fallback
+ * whenever that provider name is resolved.
+ *
+ * @example
+ * ```ts
+ * import { DriverRegistry } from '@tracepact/core';
+ * DriverRegistry.register('bedrock', BedrockDriver);
+ * ```
+ */
+function registerDriver(name: string, DriverClass: DriverConstructor): void {
+  NATIVE_DRIVERS[name] = DriverClass;
+}
+
 function createDriver(name: string, config: ProviderConfig): AgentDriver {
   // Resolve API key: explicit config > env var for this provider > env var fallback
   const envKey = PROVIDER_ENV_KEYS[name];
@@ -49,6 +66,20 @@ function createDriver(name: string, config: ProviderConfig): AgentDriver {
 }
 
 export class DriverRegistry {
+  /**
+   * Register a custom driver constructor for a provider name.
+   * Delegates to the module-level registry used by all DriverRegistry instances.
+   *
+   * @example
+   * ```ts
+   * import { DriverRegistry } from '@tracepact/core';
+   * DriverRegistry.register('bedrock', BedrockDriver);
+   * ```
+   */
+  static register(name: string, DriverClass: DriverConstructor): void {
+    registerDriver(name, DriverClass);
+  }
+
   private drivers = new Map<string, AgentDriver>();
   private initErrors = new Map<string, Error>();
   private defaultName: string;
@@ -86,6 +117,21 @@ export class DriverRegistry {
       throw new ConfigError(`providers.${name}`, `Provider "${name}" is not configured.`);
     }
     return driver;
+  }
+
+  /**
+   * Throw a ConfigError listing all providers that failed to initialize.
+   * Call this in suite setup (e.g. globalSetup) to surface misconfiguration
+   * (missing API keys, invalid options) before any test runs.
+   *
+   * Providers that initialized successfully are not affected.
+   */
+  validateAll(): void {
+    if (this.initErrors.size === 0) return;
+    const details = [...this.initErrors.entries()]
+      .map(([name, err]) => `  - ${name}: ${err.message}`)
+      .join('\n');
+    throw new ConfigError('providers', `The following providers failed to initialize:\n${details}`);
   }
 
   getAll(): Map<string, AgentDriver> {

@@ -92,14 +92,12 @@ Once configured, these tools are available to your IDE's AI:
 
 | Tool | Description |
 |------|-------------|
-| `tracepact_run` | Run tests, returns pass/fail + trace |
-| `tracepact_capture` | Generate test + cassette from agent run |
-| `tracepact_audit` | Static risk analysis of SKILL.md |
-| `tracepact_policy` | Check policy compliance (Phase 3A) |
-| `tracepact_redteam` | Red team attacks (Phase 3B) |
-| `tracepact_diff` | Compare two cassettes |
+| `tracepact_audit` | Static risk analysis of SKILL.md — no API key needed, runs instantly |
+| `tracepact_capture` | Generate a test file from a recorded cassette |
+| `tracepact_run` | Execute TracePact tests; mock mode by default, live mode optional |
+| `tracepact_diff` | Compare two cassettes to detect behavioral drift |
 | `tracepact_list_tests` | Find tests and cassettes for a skill |
-| `tracepact_replay` | Replay a cassette without API calls |
+| `tracepact_replay` | Replay a cassette without making any API calls |
 
 ## Usage
 

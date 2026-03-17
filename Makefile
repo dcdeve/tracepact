@@ -1,5 +1,5 @@
 .PHONY: all build test typecheck lint lint-fix format clean \
-       docs docs-dev audit doctor release version changeset ci watch help
+       docs docs-dev audit doctor release version changeset ci watch arch help
 
 all: lint typecheck build test ## Lint, typecheck, build, and test everything
 
@@ -56,6 +56,10 @@ doctor: ## Environment health check
 
 cost-report: ## Token cost breakdown from last live run
 	npx tracepact cost-report
+
+# ── Architecture ─────────────────────────────────────────────
+arch: ## Regenerate architecture/generated blocks from code
+	npm run generate:arch
 
 # ── Docs ─────────────────────────────────────────────────────
 docs: ## Build VitePress docs

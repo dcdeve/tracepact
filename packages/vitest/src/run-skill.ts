@@ -8,6 +8,7 @@ import {
   type ParsedSkill,
   type RunConfig,
   type RunResult,
+  TokenAccumulator,
   type ToolCallSource,
   type TracepactConfig,
   type TypedToolDefinition,
@@ -61,6 +62,10 @@ export async function runSkill(
 ): Promise<RunResult> {
   const isLive = process.env.TRACEPACT_LIVE === '1';
 
+  // Per-run accumulator: scopes budget enforcement to this single runSkill() call
+  // so that token usage from previous tests does not trigger false budget errors.
+  const runTokens = new TokenAccumulator();
+
   // Build sandbox from MCP connections (if provided and no explicit sandbox)
   let sandbox = input.sandbox;
   let tools = input.tools;
@@ -102,7 +107,8 @@ export async function runSkill(
         process.env.TRACEPACT_PROVIDER ?? 'unknown',
         result.usage.model,
         result.usage.inputTokens,
-        result.usage.outputTokens
+        result.usage.outputTokens,
+        runTokens
       );
     }
 
@@ -125,7 +131,16 @@ export async function runSkill(
     messages: [],
     usage: { inputTokens: 0, outputTokens: 0, model: 'mock' },
     duration: 0,
-    runManifest: undefined as any,
+    runManifest: {
+      skillHash: '',
+      promptHash: '',
+      toolDefsHash: '',
+      provider: 'mock',
+      model: 'mock',
+      temperature: 0,
+      frameworkVersion: 'mock',
+      driverVersion: 'mock',
+    },
   };
 }
 

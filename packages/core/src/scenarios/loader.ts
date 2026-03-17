@@ -8,20 +8,34 @@ export interface Scenario {
   [key: string]: unknown;
 }
 
+export interface ScenarioParser {
+  parse(raw: string): unknown;
+}
+
+const parserRegistry = new Map<string, ScenarioParser>([
+  ['.json', { parse: (raw) => JSON.parse(raw) }],
+  ['.yaml', { parse: (raw) => parseYaml(raw) }],
+  ['.yml', { parse: (raw) => parseYaml(raw) }],
+]);
+
+export function registerScenarioParser(ext: string, parser: ScenarioParser): void {
+  parserRegistry.set(ext.startsWith('.') ? ext : `.${ext}`, parser);
+}
+
 export async function loadScenarios(filePath: string): Promise<Scenario[]> {
   const resolved = resolve(filePath);
   const raw = await readFile(resolved, 'utf-8');
   const ext = extname(resolved).toLowerCase();
 
+  const parser = parserRegistry.get(ext);
   let data: unknown;
-  if (ext === '.json') {
-    data = JSON.parse(raw);
-  } else if (ext === '.yaml' || ext === '.yml') {
-    data = parseYaml(raw);
+  if (parser) {
+    data = parser.parse(raw);
   } else {
+    const supported = [...parserRegistry.keys()].join(', ');
     throw new TracepactError(
       'SCENARIO_LOAD_ERROR',
-      `Unsupported scenario file format: ${ext}. Use .json or .yaml`
+      `Unsupported scenario file format: ${ext}. Use ${supported}`
     );
   }
 

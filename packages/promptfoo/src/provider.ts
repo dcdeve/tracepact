@@ -1,16 +1,13 @@
 import {
-  type AgentDriver,
-  DriverRegistry,
   type MockSandbox,
   type MockToolDefs,
-  type ProviderConfig,
   captureWrites,
   createMockTools,
   denyAll,
+  executePrompt,
   mockReadFile,
   parseSkill,
   passthrough,
-  resolveConfig,
 } from '@tracepact/core';
 
 export interface ToolMockConfig {
@@ -61,15 +58,26 @@ export class TracepactProvider {
     // 2. Build sandbox from config
     const sandbox = this.buildSandbox();
 
-    // 3. Create driver
-    const driver = this.createDriver();
+    // 3. Build tracepactConfig from provider settings
+    const providerName = this.config.provider ?? 'openai';
+    const providerConfig = {
+      model: this.config.model ?? 'gpt-4o',
+      ...(this.config.apiKey ? { apiKey: this.config.apiKey } : {}),
+      ...(this.config.baseURL ? { baseURL: this.config.baseURL } : {}),
+    };
 
-    // 4. Run agent
+    // 4. Run via executePrompt (inherits cache, redaction, cassette recording, health checks)
     try {
-      const result = await driver.run({
-        skill: skillInput.skill,
+      const result = await executePrompt(skillInput.skill, {
         prompt,
         sandbox,
+        provider: providerName,
+        tracepactConfig: {
+          providers: {
+            default: providerName,
+            [providerName]: providerConfig,
+          },
+        },
         ...(this.config.maxToolIterations != null && {
           config: { maxToolIterations: this.config.maxToolIterations },
         }),
@@ -124,26 +132,6 @@ export class TracepactProvider {
     }
 
     return createMockTools(defs);
-  }
-
-  private createDriver(): AgentDriver {
-    const providerName = this.config.provider ?? 'openai';
-
-    const providerConfig: ProviderConfig = {
-      model: this.config.model ?? 'gpt-4o',
-      ...(this.config.apiKey ? { apiKey: this.config.apiKey } : {}),
-      ...(this.config.baseURL ? { baseURL: this.config.baseURL } : {}),
-    };
-
-    const config = resolveConfig(providerName, {
-      providers: {
-        default: providerName,
-        [providerName]: providerConfig,
-      },
-    });
-
-    const registry = new DriverRegistry(config);
-    return registry.get(providerName);
   }
 }
 
