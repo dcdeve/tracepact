@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 
 export interface FlakeEntry {
   testId: string;
@@ -25,6 +25,15 @@ const MAX_ENTRIES_PER_TEST = 10;
 const FLAKY_MIN_RUNS = 3;
 const FLAKY_THRESHOLD = 0.1;
 
+/**
+ * Persistent store for flake history.
+ *
+ * NOTE: Not safe for concurrent access from multiple processes pointing at the
+ * same file. Each process loads a full snapshot into memory, appends entries,
+ * and flushes — a second writer will silently overwrite the first writer's
+ * entries. In CI, ensure each shard writes to a distinct path and merge results
+ * afterwards.
+ */
 export class FlakeStore {
   private history: FlakeHistory = { entries: [], version: 1 };
   private path: string;
@@ -76,7 +85,9 @@ export class FlakeStore {
   async save(): Promise<void> {
     const dir = this.path.substring(0, this.path.lastIndexOf('/'));
     if (dir) await mkdir(dir, { recursive: true });
-    await writeFile(this.path, JSON.stringify(this.history, null, 2));
+    const tmpPath = `${this.path}.tmp`;
+    await writeFile(tmpPath, JSON.stringify(this.history, null, 2));
+    await rename(tmpPath, this.path);
   }
 
   private trim(): void {
