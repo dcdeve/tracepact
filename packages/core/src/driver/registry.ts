@@ -164,10 +164,12 @@ export class DriverRegistry {
   }
 
   async healthCheckAll(): Promise<Map<string, HealthCheckResult>> {
-    const results = new Map<string, HealthCheckResult>();
-    for (const [name, driver] of this.drivers) {
-      results.set(name, await driver.healthCheck());
-    }
-    return results;
+    const entries = await Promise.all(
+      Array.from(this.drivers.entries()).map(async ([name, driver]) => {
+        const result = await driver.healthCheck();
+        return [name, result] as const;
+      })
+    );
+    return new Map(entries);
   }
 }
