@@ -216,7 +216,8 @@ export function toHaveLineCount(output: string, spec: LineCountSpec): MatcherRes
 export function toHaveFileWritten(
   writesOrTrace: ReadonlyArray<WriteCapture> | ToolTrace,
   path: string,
-  contentMatcher?: string | RegExp
+  contentMatcher?: string | RegExp,
+  writeToolName = 'write_file'
 ): MatcherResult {
   // Accept both WriteCapture[] and ToolTrace — extract writes from trace if needed
   const isTrace = !Array.isArray(writesOrTrace) && 'calls' in writesOrTrace;
@@ -224,7 +225,7 @@ export function toHaveFileWritten(
     ? (writesOrTrace as ToolTrace).calls
         .filter(
           (c: { toolName: string; result: { type: string }; args: Record<string, unknown> }) =>
-            c.toolName === 'write_file' &&
+            c.toolName === writeToolName &&
             c.result.type === 'success' &&
             typeof c.args.path === 'string'
         )
