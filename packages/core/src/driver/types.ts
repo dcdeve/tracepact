@@ -61,7 +61,7 @@ export interface RunResult {
   messages: Message[];
   usage: UsageInfo;
   duration: number;
-  runManifest: RunManifest;
+  runManifest?: RunManifest | undefined;
   /**
    * Describes how the cache/replay layer handled this result:
    * - `'miss'`             — live LLM call; result was written to cache successfully.

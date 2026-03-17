@@ -18,19 +18,25 @@ function firstDiffIndex(a: string, b: string): number {
 }
 
 /** Current cassette schema version written by CassetteRecorder. */
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 /**
  * Migrators indexed by the version they upgrade FROM.
- * To add a migration from v1 → v2, add an entry at key 1:
- *   1: (c) => ({ ...c, version: 2, newField: defaultValue })
- *
  * Each migrator receives the cassette at version N and must return it at
  * version N+1. The `migrate` function below chains them automatically.
  */
 const MIGRATORS: Record<number, (c: unknown) => unknown> = {
-  // Example (uncomment and adapt when v2 is introduced):
-  // 1: (c) => ({ ...(c as Cassette), version: 2 }),
+  1: (c: unknown) => {
+    const prev = c as { version: number; metadata?: Record<string, unknown> };
+    if (!prev.metadata || typeof prev.metadata !== 'object') {
+      throw new Error('Cannot migrate v1 cassette: missing or invalid "metadata" field.');
+    }
+    return {
+      ...prev,
+      version: 2,
+      metadata: { ...prev.metadata, source: 'skill_run' },
+    };
+  },
 };
 
 function migrate(raw: unknown): Cassette {
@@ -92,30 +98,33 @@ export class CassettePlayer {
   async replay(currentPrompt?: string, currentToolDefsHash?: string): Promise<RunResult> {
     const cassette = await this.load();
 
-    if (currentPrompt && cassette.metadata.prompt !== currentPrompt) {
-      const recordedHash = sha256Short(cassette.metadata.prompt);
-      const currentHash = sha256Short(currentPrompt);
-      const diffAt = firstDiffIndex(cassette.metadata.prompt, currentPrompt);
-      const message = `Cassette prompt mismatch. Recorded hash: ${recordedHash}, Current hash: ${currentHash}, first diff at char ${diffAt}.`;
-      log.debug(
-        `Cassette prompt mismatch full strings:\n  Recorded: ${cassette.metadata.prompt}\n  Current:  ${currentPrompt}`
-      );
-      if (this.strict) {
-        throw new Error(message);
+    // Validations only apply for skill_run cassettes
+    if (cassette.metadata.source === 'skill_run') {
+      if (currentPrompt && cassette.metadata.prompt !== currentPrompt) {
+        const recordedHash = sha256Short(cassette.metadata.prompt);
+        const currentHash = sha256Short(currentPrompt);
+        const diffAt = firstDiffIndex(cassette.metadata.prompt, currentPrompt);
+        const message = `Cassette prompt mismatch. Recorded hash: ${recordedHash}, Current hash: ${currentHash}, first diff at char ${diffAt}.`;
+        log.debug(
+          `Cassette prompt mismatch full strings:\n  Recorded: ${cassette.metadata.prompt}\n  Current:  ${currentPrompt}`
+        );
+        if (this.strict) {
+          throw new Error(message);
+        }
+        log.warn(message);
       }
-      log.warn(message);
-    }
 
-    if (
-      currentToolDefsHash &&
-      cassette.metadata.toolDefsHash &&
-      cassette.metadata.toolDefsHash !== currentToolDefsHash
-    ) {
-      const message = `Cassette tool definitions mismatch. Recorded hash: "${cassette.metadata.toolDefsHash.slice(0, 16)}…", Current: "${currentToolDefsHash.slice(0, 16)}…". Tool definitions may have changed since this cassette was recorded.`;
-      if (this.strict) {
-        throw new Error(message);
+      if (
+        currentToolDefsHash &&
+        cassette.metadata.toolDefsHash &&
+        cassette.metadata.toolDefsHash !== currentToolDefsHash
+      ) {
+        const message = `Cassette tool definitions mismatch. Recorded hash: "${cassette.metadata.toolDefsHash.slice(0, 16)}…", Current: "${currentToolDefsHash.slice(0, 16)}…". Tool definitions may have changed since this cassette was recorded.`;
+        if (this.strict) {
+          throw new Error(message);
+        }
+        log.warn(message);
       }
-      log.warn(message);
     }
 
     const { result } = cassette;
@@ -150,6 +159,8 @@ export class CassettePlayer {
       }
     }
 
+    const { metadata } = cassette;
+
     return {
       output: result.output,
       trace: {
@@ -159,19 +170,26 @@ export class CassettePlayer {
           result.trace.totalDurationMs ?? calls.reduce((sum, c) => sum + (c.durationMs ?? 0), 0),
       },
       messages: [...(result.messages ?? [])],
-      usage: result.usage ?? { inputTokens: 0, outputTokens: 0, model: cassette.metadata.model },
+      usage:
+        result.usage ??
+        (metadata.source === 'skill_run'
+          ? { inputTokens: 0, outputTokens: 0, model: metadata.model }
+          : { inputTokens: 0, outputTokens: 0, model: 'unknown' }),
       duration: 0,
       cacheStatus: 'cassette_replay',
-      runManifest: {
-        skillHash: cassette.metadata.skillHash,
-        promptHash: cassette.metadata.promptHash,
-        toolDefsHash: cassette.metadata.toolDefsHash,
-        provider: cassette.metadata.provider,
-        model: cassette.metadata.model,
-        temperature: cassette.metadata.temperature,
-        frameworkVersion: cassette.metadata.frameworkVersion,
-        driverVersion: cassette.metadata.driverVersion,
-      } as RunManifest,
+      runManifest:
+        metadata.source === 'skill_run'
+          ? ({
+              skillHash: metadata.skillHash,
+              promptHash: metadata.promptHash,
+              toolDefsHash: metadata.toolDefsHash,
+              provider: metadata.provider,
+              model: metadata.model,
+              temperature: metadata.temperature,
+              frameworkVersion: metadata.frameworkVersion,
+              driverVersion: metadata.driverVersion,
+            } as RunManifest)
+          : undefined,
     };
   }
 }

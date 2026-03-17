@@ -1,6 +1,8 @@
 export type {
   Cassette,
   CassetteMetadata,
+  SkillRunMetadata,
+  ObservedMetadata,
   CassetteResult,
   CassetteToolCall,
   CassetteStub,

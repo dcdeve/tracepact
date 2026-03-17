@@ -166,9 +166,16 @@ export async function executePrompt(
   }
 
   const result = await driver.run(runInput);
+  // driver.run() must always produce a manifest for live runs.
+  const manifest = result.runManifest;
+  if (!manifest) {
+    throw new Error(
+      `Driver "${providerName}" returned no runManifest for a live run. All drivers must populate runManifest when executing against a real LLM.`
+    );
+  }
 
   // 4b. Populate cache with the actual manifest produced by the driver.
-  await cache.set(result.runManifest, result);
+  await cache.set(manifest, result);
   let cacheStatus: RunResult['cacheStatus'];
   if (!cacheConfig.enabled) {
     cacheStatus = 'skipped';
@@ -188,15 +195,16 @@ export async function executePrompt(
     const skillHash = computeSkillHash(resolvedSkill);
     const recorder = new CassetteRecorder(opts.record, config.redaction);
     await recorder.save(result, {
+      source: 'skill_run',
       skillHash,
       prompt: opts.prompt,
-      promptHash: result.runManifest.promptHash,
-      toolDefsHash: result.runManifest.toolDefsHash,
+      promptHash: manifest.promptHash,
+      toolDefsHash: manifest.toolDefsHash,
       provider: providerName,
       model: result.usage.model,
-      temperature: result.runManifest.temperature,
-      frameworkVersion: result.runManifest.frameworkVersion,
-      driverVersion: result.runManifest.driverVersion,
+      temperature: manifest.temperature,
+      frameworkVersion: manifest.frameworkVersion,
+      driverVersion: manifest.driverVersion,
     });
   }
 

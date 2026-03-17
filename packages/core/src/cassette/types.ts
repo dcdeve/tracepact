@@ -8,7 +8,11 @@ export interface Cassette {
   readonly result: CassetteResult;
 }
 
-export interface CassetteMetadata {
+export type CassetteMetadata = SkillRunMetadata | ObservedMetadata;
+
+/** Metadata for cassettes produced by executePrompt (skill runs). */
+export interface SkillRunMetadata {
+  readonly source: 'skill_run';
   readonly skillHash: string;
   readonly prompt: string;
   readonly promptHash: string;
@@ -18,6 +22,13 @@ export interface CassetteMetadata {
   readonly temperature: number;
   readonly frameworkVersion: string;
   readonly driverVersion: string;
+}
+
+/** Metadata for cassettes produced by external observers (hooks, proxies, etc.). */
+export interface ObservedMetadata {
+  readonly source: 'observed';
+  readonly sessionId: string;
+  readonly tool?: string;
 }
 
 export interface CassetteResult {

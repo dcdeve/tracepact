@@ -187,7 +187,7 @@ describe('OpenAIDriver', () => {
       expect(result.usage.inputTokens).toBe(10);
       expect(result.usage.outputTokens).toBe(5);
       expect(result.usage.model).toBe('gpt-4o');
-      expect(result.runManifest.provider).toBe('openai');
+      expect(result.runManifest?.provider).toBe('openai');
     });
 
     it('handles single tool call', async () => {
@@ -407,7 +407,7 @@ describe('OpenAIDriver', () => {
         sandbox,
       });
 
-      expect(result.runManifest.provider).toBe('groq');
+      expect(result.runManifest?.provider).toBe('groq');
     });
 
     it('works with ParsedSkill (has hash/body)', async () => {
