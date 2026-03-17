@@ -1,6 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import {
+  CassettePlayer,
   MockSandbox,
   analyzeTrace,
   executePrompt,
@@ -67,7 +68,7 @@ export async function capture(opts: CaptureOptions): Promise<void> {
   console.log(`Parsed skill: ${skill.frontmatter.name ?? opts.skill}`);
 
   if (opts.dryRun) {
-    generateFromCassette(cassettePath, {
+    await generateFromCassette(cassettePath, {
       skill: opts.skill,
       prompt: opts.prompt,
       out,
@@ -96,7 +97,12 @@ export async function capture(opts: CaptureOptions): Promise<void> {
     `Done. ${result.trace.totalCalls} tool calls, ${result.usage.inputTokens + result.usage.outputTokens} tokens used.`
   );
 
-  generateFromCassette(cassettePath, { skill: opts.skill, prompt: opts.prompt, out, withSemantic });
+  await generateFromCassette(cassettePath, {
+    skill: opts.skill,
+    prompt: opts.prompt,
+    out,
+    withSemantic,
+  });
 }
 
 interface GenOpts {
@@ -106,10 +112,9 @@ interface GenOpts {
   withSemantic: boolean;
 }
 
-function generateFromCassette(cassettePath: string, opts: GenOpts): void {
+async function generateFromCassette(cassettePath: string, opts: GenOpts): Promise<void> {
   console.log('\nReading cassette...');
-  const raw = readFileSync(resolve(cassettePath), 'utf-8');
-  const cassette = JSON.parse(raw);
+  const cassette = await new CassettePlayer(resolve(cassettePath)).load();
 
   const trace = {
     calls: cassette.result.trace.calls,
