@@ -120,7 +120,7 @@ export async function diffCassettes(cassettePathA: string, cassettePathB: string
 export class CassettePlayer {
   constructor(filePath: string, stubs: CassetteStub[], strict: boolean)
   async load(): Promise<Cassette>
-  async replay(currentPrompt: string): Promise<RunResult>
+  async replay(currentPrompt: string, currentToolDefsHash: string): Promise<RunResult>
 }
 ```
 
@@ -128,7 +128,7 @@ export class CassettePlayer {
 
 ```ts
 export class CassetteRecorder {
-  constructor(filePath: string, redactionConfig: RedactionConfig)
+  constructor(filePath: string, redactionConfig: RedactionConfig, maxEntrySizeBytes: number)
   async save(result: RunResult, metadata: CassetteMetadata): Promise<void>
 }
 ```
@@ -184,6 +184,7 @@ export class OpenAIDriver implements AgentDriver {
 export class DriverRegistry {
   constructor(config: TracepactConfig)
   register(name: string, DriverClass: DriverConstructor): void
+  unregister(name: string): void
   getDefault(): AgentDriver
   get(name: string): AgentDriver
   validateAll(): void
@@ -216,8 +217,9 @@ export class RetryPolicy {
 
 ```ts
 export class Semaphore {
-  constructor(max: number)
+  constructor(max: number, timeoutMs: number)
   async run(fn: () => Promise<T>): Promise<T>
+  getQueueLength(): number
 }
 ```
 
@@ -403,7 +405,7 @@ export class EmbeddingCache {
 export function estimateEmbeddingTokens(texts: string[]): number
 
 export class OpenAIEmbeddingProvider implements EmbeddingProvider {
-  constructor(apiKey: string)
+  constructor(apiKey: string, model: string, dimensions: number)
   async embed(texts: string[]): Promise<number[][]>
 }
 ```
@@ -738,6 +740,8 @@ export function tracepactPlugin(): Plugin<any>
 ## `packages/vitest/src/run-skill.ts`
 
 ```ts
+export async function _closePendingMcpConnections(): Promise<void>
+
 export async function runSkill(skill: any, input: RunSkillOptions): Promise<RunResult>
 ```
 

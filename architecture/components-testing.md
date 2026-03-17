@@ -19,7 +19,7 @@ Otros grupos de componentes: [components-drivers.md](./components-drivers.md) ·
 - **Entradas:** tool name + args from driver
 - **Salidas:** `ToolResult` (success string or error), populates `ToolTrace`
 - **Estado interno:** stateful — accumulates `ToolTrace` and `WriteCapture[]` during run
-- **Observaciones:** `[OBSERVED]` The sandbox is reset between runs via `reset()`. `[OBSERVED]` `passthrough()` is a factory function exported from `sandbox/factories.js` (not a method on `MockSandbox`) — returns `{ type: 'success', content: '' }`, a no-op that silently succeeds. `[OBSERVED]` The tool name tracked for `WriteCapture` defaults to `'write_file'` but is configurable via the third constructor parameter. `[OBSERVED]` When `strict: true` is passed in `MockSandboxOptions`, args are validated against the JSON Schema declared in `MockToolEntry` before calling the impl — tools registered as plain functions (no schema) are unaffected. `[OBSERVED]` Unknown tool calls result in `{ type: 'error', message: "Unknown tool: '<name>'." }` and are still recorded in the trace with `unknownTool: true`. `[OBSERVED]` A `Sandbox` interface is exported from `sandbox/types.ts` that all sandbox implementations share (`executeTool`, `getTrace`, `getWrites`).
+- **Observaciones:** `[OBSERVED]` The sandbox is reset between runs via `reset()`. `[OBSERVED]` `passthrough()` is a factory function exported from `sandbox/factories.js` (not a method on `MockSandbox`) — returns `{ type: 'success', content: '' }`, a no-op that silently succeeds. `[OBSERVED]` The tool name tracked for `WriteCapture` defaults to `'write_file'` but is configurable via the third constructor parameter. `[OBSERVED]` When `strict: true` is passed in `MockSandboxOptions`, args are validated against the JSON Schema declared in `MockToolEntry` before calling the impl — tools registered as plain functions (no schema) are unaffected. `[OBSERVED]` `validateArgs` in strict mode supports extended JSON Schema keywords: nested objects, `enum`, `minLength`, `maxLength`, `pattern`, and array `items` — not just top-level type checking. `[OBSERVED]` Unknown tool calls result in `{ type: 'error', message: "Unknown tool: '<name>'." }` and are still recorded in the trace with `unknownTool: true`. `[OBSERVED]` A `Sandbox` interface is exported from `sandbox/types.ts` that all sandbox implementations share (`executeTool`, `getTrace`, `getWrites`).
 
 #### Firmas relevantes
 
@@ -126,7 +126,7 @@ export type MockToolDefs = Record<string, MockToolImpl | MockToolEntry>;
 - **Entradas:** `ToolTrace`, `string` (output), `WriteCapture[]`
 - **Salidas:** `MatcherResult` with `pass`, `message`, `tier`, `diagnostic`
 - **Estado interno:** stateless (except `EmbeddingCache` which is a module-level singleton `globalEmbeddingCache`)
-- **Observaciones:** `[OBSERVED]` Tier 3 matchers call `embedWithCache(provider, texts)` which deduplicates against a module-level `globalEmbeddingCache` (an instance of `EmbeddingCache`) — only uncached texts are sent to the provider. `[OBSERVED]` `EmbeddingCache` uses a 16-hex-character SHA256 prefix as the in-memory key. `[OBSERVED]` `clearEmbeddingCache()` is exported from `matchers/tier3/embedding-cache.ts` and re-exported via `matchers/tier3/index.ts` — call it between test suites to reset the cache. `[OBSERVED]` Tier 4 (`toPassJudge`) requires `driver` in options — returns a fail result immediately if no driver is provided, without throwing. `[OBSERVED]` Tier 4 consensus voting: when `consensus > 1`, temperature defaults to `0.3`; single-judge mode defaults to `0`. Majority rule (`passed > consensusCount / 2`) determines pass/fail. `[OBSERVED]` The `tier` field on `MatcherResult` is diagnostic only — it is not used to affect pass/fail logic. `[OBSERVED]` `JudgeExecutor` uses a `MockSandbox({})` internally for each judge API call — the judge LLM does not use any tools.
+- **Observaciones:** `[OBSERVED]` Tier 3 matchers call `embedWithCache(provider, texts)` which deduplicates against a module-level `globalEmbeddingCache` (an instance of `EmbeddingCache`) — only uncached texts are sent to the provider. `[OBSERVED]` `EmbeddingCache` uses a 16-hex-character SHA256 prefix as the in-memory key. `[OBSERVED]` `EmbeddingCache` maintains an `inFlight: Map<string, Promise<number[]>>` to deduplicate concurrent embedding requests for the same text — a second call for an in-flight text awaits the first rather than firing a new API request. `[OBSERVED]` `clearEmbeddingCache()` is exported from `matchers/tier3/embedding-cache.ts` and re-exported via `matchers/tier3/index.ts` — call it between test suites to reset the cache. `[OBSERVED]` `OpenAIEmbeddingProvider` constructor accepts optional `model` and `dimensions` parameters, allowing callers to select specific embedding models without subclassing. `[OBSERVED]` Tier 4 (`toPassJudge`) requires `driver` in options — returns a fail result immediately if no driver is provided, without throwing. `[OBSERVED]` Tier 4 consensus voting: when `consensus > 1`, temperature defaults to `0.3`; single-judge mode defaults to `0`. Majority rule (`passed > consensusCount / 2`) determines pass/fail. `[OBSERVED]` `JudgeConfig.timeout?: number` is forwarded to `driver.run()` — limits per-judge-call latency. `[OBSERVED]` Partial voter failure: individual voter errors are collected in `voterErrors[]`; only when all voters fail does `JudgeExecutor.evaluate()` throw. `[OBSERVED]` Judge response parse failure now throws instead of silently returning `pass: false` — surfaces prompt/schema mismatches rather than producing misleading results. `[OBSERVED]` The `tier` field on `MatcherResult` is diagnostic only — it is not used to affect pass/fail logic. `[OBSERVED]` `JudgeExecutor` uses a `MockSandbox({})` internally for each judge API call — the judge LLM does not use any tools.
 
 #### Firmas relevantes
 
@@ -173,6 +173,7 @@ interface JudgeConfig {
   consensus?: number;
   temperature?: number;
   maxTokens?: number;
+  timeout?: number;
 }
 
 // RAG matchers — Tier 0 (deterministic, packages/core/src/matchers/rag/index.ts)
@@ -240,6 +241,8 @@ export interface JudgeConfig {
   consensus?: number;
   temperature?: number;
   maxTokens?: number;
+  /** Timeout in milliseconds for a single judge LLM call. */
+  timeout?: number;
 }
 
 export interface JudgeVote {
@@ -258,6 +261,8 @@ export interface JudgeResult {
   tokens: number;
   votes: JudgeVote[];
   consensus: { passed: number; failed: number; total: number };
+  /** Errors from individual voters that failed, if any. Only present when at least one voter errored. */
+  voterErrors?: string[];
 }
 
 export function buildJudgePrompt(output: string, criteria: string, calibration: CalibrationSet): string
@@ -282,7 +287,7 @@ export class JudgeExecutor {
 - **Entradas (recorder):** `RunResult` + `CassetteMetadata`
 - **Salidas (player):** `RunResult` reconstructed from disk
 - **Estado interno:** stateless after construction (path is fixed at construction time)
-- **Observaciones:** `[OBSERVED]` Cassettes are versioned (`version: number`, initial value `1`). `[OBSERVED]` `CassettePlayer.load()` uses a `switch` on `version` — adding a new version requires only a new `case` branch; unknown versions still throw. `[OBSERVED]` Stubs allow overriding specific tool call results. Matching criteria: `toolName` (required), `sequenceIndex` (optional — omit to match any position), `args` (optional partial match on call arguments). `[OBSERVED]` `CassetteRecorder.save()` applies `RedactionPipeline` before writing to disk — cassette files are redacted according to `RedactionConfig`. `[OBSERVED]` The `RunManifest` fields (`promptHash`, `toolDefsHash`, `temperature`, `driverVersion`) are persisted in `CassetteMetadata` and fully restored by `CassettePlayer.replay()`. `[OBSERVED]` `CassettePlayer` constructor accepts a third `strict` parameter (default `true`) — when `true`, a prompt mismatch between the recorded cassette and the current prompt throws an error; when `false`, it logs a warning and continues. `[OBSERVED]` `CassettePlayer.replay()` reconstructs `RunManifest` from cassette metadata fields; `modelVersion` and `seed` are not included in the reconstructed manifest.
+- **Observaciones:** `[OBSERVED]` Cassettes are versioned — `CURRENT_VERSION = 1` is the current version constant. `[OBSERVED]` `CassettePlayer` uses a `MIGRATORS` table and `migrate()` function for version upgrades — each entry maps a version number to a migration function; cassettes are automatically migrated forward on load. Unknown versions still throw. `[OBSERVED]` Stubs allow overriding specific tool call results. Matching criteria: `toolName` (required), `sequenceIndex` (optional — omit to match any position), `args` (optional — uses `JSON.stringify` deep equality instead of `===` for object args). `[OBSERVED]` Unmatched stubs emit a `log.warn` rather than silently being ignored. `[OBSERVED]` `CassetteRecorder.save()` applies `RedactionPipeline` before writing to disk — cassette files are redacted according to `RedactionConfig`. `[OBSERVED]` `CassetteRecorder` accepts `maxEntrySizeBytes?: number` — entries exceeding the limit are rejected. `[OBSERVED]` The `RunManifest` fields (`promptHash`, `toolDefsHash`, `temperature`, `driverVersion`) are persisted in `CassetteMetadata` and fully restored by `CassettePlayer.replay()`. `[OBSERVED]` `CassettePlayer` constructor accepts a third `strict` parameter (default `true`) — when `true`, a prompt mismatch between the recorded cassette and the current prompt throws an error; when `false`, it logs a warning and continues. `[OBSERVED]` `CassettePlayer.replay()` accepts `currentToolDefsHash?` and validates it against the recorded hash — mismatches are reported with a SHA-256 prefix and the first diff index. `[OBSERVED]` `CassettePlayer.replay()` returns `cacheStatus: 'cassette_replay'` on the replay path. `[OBSERVED]` `CassettePlayer.replay()` reconstructs `RunManifest` from cassette metadata fields; `modelVersion` and `seed` are not included in the reconstructed manifest.
 
 #### Firmas relevantes
 
@@ -295,7 +300,7 @@ class CassetteRecorder {
 class CassettePlayer {
   constructor(filePath: string, stubs?: CassetteStub[], strict?: boolean)  // strict defaults to true
   async load(): Promise<Cassette>
-  async replay(currentPrompt?: string): Promise<RunResult>
+  async replay(currentPrompt?: string, currentToolDefsHash?: string): Promise<RunResult>
 }
 
 interface CassetteStub {
@@ -316,7 +321,7 @@ _Auto-generated from code — do not edit this block manually._
 export class CassettePlayer {
   constructor(filePath: string, stubs: CassetteStub[], strict: boolean)
   async load(): Promise<Cassette>
-  async replay(currentPrompt: string): Promise<RunResult>
+  async replay(currentPrompt: string, currentToolDefsHash: string): Promise<RunResult>
 }
 ```
 
@@ -324,7 +329,7 @@ export class CassettePlayer {
 
 ```ts
 export class CassetteRecorder {
-  constructor(filePath: string, redactionConfig: RedactionConfig)
+  constructor(filePath: string, redactionConfig: RedactionConfig, maxEntrySizeBytes: number)
   async save(result: RunResult, metadata: CassetteMetadata): Promise<void>
 }
 ```
@@ -343,7 +348,7 @@ export class CassetteRecorder {
 - **Entradas:** `RunManifest`
 - **Salidas:** `CacheEntry | null`
 - **Estado interno:** stateless — reads/writes filesystem; tracks `_writeFailures` count
-- **Observaciones:** `[OBSERVED]` Cache entries have a configurable `ttlSeconds` (default 7 days) and optional `verifyOnRead` checksum validation. `[INFERRED]` Two runs with identical skill hash, prompt hash, tool defs hash, provider, model, temperature, and seed will always hit cache — temperature=0 + seed is required for reliable cache hits. `[OBSERVED]` `CacheStore` accepts an optional `redactionConfig` in its constructor and applies `RedactionPipeline` to results before writing — cache files are redacted. `[OBSERVED]` `set()` uses an atomic write: data is first written to a `.tmp` file, then renamed to the final path — prevents partial writes from being read. `[OBSERVED]` Write failures increment `_writeFailures` and are non-fatal (logged as warnings, execution continues). `[OBSERVED]` `clear()` also removes leftover `.tmp` files unconditionally.
+- **Observaciones:** `[OBSERVED]` Cache entries have a configurable `ttlSeconds` (default 7 days) and optional `verifyOnRead` checksum validation. `[INFERRED]` Two runs with identical skill hash, prompt hash, tool defs hash, provider, model, temperature, and seed will always hit cache — temperature=0 + seed is required for reliable cache hits. `[OBSERVED]` `CacheStore` accepts an optional `redactionConfig` in its constructor and applies `RedactionPipeline` to results before writing — cache files are redacted. `[OBSERVED]` `CacheConfig.maxEntrySizeBytes?: number` — entries exceeding this limit are skipped (not written) to prevent unbounded disk growth; a `log.warn` is emitted when an entry is skipped. `[OBSERVED]` `set()` uses an atomic write: data is first written to a `.tmp` file, then renamed to the final path — prevents partial writes from being read. `[OBSERVED]` `clear()` removes leftover `.tmp` files and emits `log.warn` if a tmp file cleanup fails (previously silent). `[OBSERVED]` Write failures increment `_writeFailures` and are non-fatal (logged as warnings, execution continues).
 
 #### Firmas relevantes
 

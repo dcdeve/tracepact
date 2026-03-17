@@ -67,7 +67,7 @@ export class AuditEngine {
 - **Entradas:** `McpClientConfig` (server, command, args, env)
 - **Salidas:** `McpConnection` (tools array, handlers map, sources map, close fn)
 - **Estado interno:** stateful — subprocess lifecycle + active connection
-- **Observaciones:** `[OBSERVED]` `connectMcp()` returns a `McpConnection` object that includes `handlers` and `sources` for injection into `MockSandbox`, completing the integration loop between MCP and the test sandbox. `[OBSERVED]` `McpConnection` is defined in `connect.ts`, not `client.ts` — `McpClient` is a lower-level class used only by `connectMcp()`. `[OBSERVED]` If `callTool()` throws (connection error), `_connected` is set to `false` and the error is re-thrown as a descriptive `Error` with the server name in the message. `[OBSERVED]` `close()` is a no-op if not connected.
+- **Observaciones:** `[OBSERVED]` `connectMcp()` returns a `McpConnection` object that includes `handlers` and `sources` for injection into `MockSandbox`, completing the integration loop between MCP and the test sandbox. `[OBSERVED]` `McpConnection` is defined in `connect.ts`, not `client.ts` — `McpClient` is a lower-level class used only by `connectMcp()`. `[OBSERVED]` `McpClientConfig` accepts `toolCallTimeoutMs?: number` (default 30s) — `callTool()` is wrapped with `Promise.race()` so hung tool calls are aborted after the timeout rather than hanging indefinitely. `[OBSERVED]` `_connected = false` is only set on `McpError(ConnectionClosed)` errors, not on all errors — transient tool errors do not mark the connection as closed. `[OBSERVED]` `close()` is a no-op if not connected.
 
 #### Firmas relevantes
 
@@ -112,6 +112,8 @@ export interface McpClientConfig {
   args?: string[];
   /** Environment variables for the server process */
   env?: Record<string, string>;
+  /** Timeout in ms for each tool call. Defaults to 30 000 ms. */
+  toolCallTimeoutMs?: number;
 }
 
 export interface McpToolInfo {
@@ -166,7 +168,7 @@ export function tracepactPlugin(): Plugin<any>
 - **Dependencias externas:** `vitest`
 - **Consumido por:** Vitest automatically, via `setupFiles` in `tracepactPlugin`
 - **Estado interno:** module-level side effects (cache clearing, health check)
-- **Observaciones:** `[OBSERVED]` `clearEmbeddingCache()` is called in `beforeEach` to prevent embedding state from bleeding between tests. `[OBSERVED]` `afterAll` clears embedding cache, registry cache, and resets the response cache via `resetCache()`. `[OBSERVED]` The health check runs only when `TRACEPACT_LIVE === '1'`; it instantiates a `DriverRegistry`, calls `validateAll()`, then `driver.healthCheck()`. `[OBSERVED]` If `TRACEPACT_HEALTH_CHECK_STRICT === '1'` and the health check fails, the process exits with code `4`. `[OBSERVED]` Default models per provider are hardcoded in the setup file (e.g. `openai → gpt-4o`, `claude/anthropic → claude-sonnet-4-5-20250929`).
+- **Observaciones:** `[OBSERVED]` `initLogLevelFromEnv()` is called at module level so log level is applied before any test runs. `[OBSERVED]` `clearEmbeddingCache()` is called in `beforeEach` to prevent embedding state from bleeding between tests. `[OBSERVED]` `afterEach` calls `_closePendingMcpConnections()` to clean up any MCP connections opened during the test. `[OBSERVED]` `afterAll` clears embedding cache, registry cache, and resets the response cache via `resetCache()`. `[OBSERVED]` The health check runs only when `TRACEPACT_LIVE === '1'`; it uses `resolveConfig()` (not a hardcoded model list) to build the config, calls `validateAll()`, then `driver.healthCheck()`. `[OBSERVED]` If `TRACEPACT_HEALTH_CHECK_STRICT === '1'` and the health check fails, the process exits with code `4`.
 
 <!-- SOURCES: packages/vitest/src/setup.ts -->
 <!-- BEGIN:GENERATED -->
@@ -188,7 +190,7 @@ _No exported symbols found._
 - **Entradas:** `ParsedSkill | string | { systemPrompt: string }`, `RunSkillOptions`
 - **Salidas:** `RunResult`
 - **Estado interno:** stateless (per-call `TokenAccumulator` is created fresh each invocation)
-- **Observaciones:** `[OBSERVED]` Three execution modes — live (`TRACEPACT_LIVE=1`), replay (cassette path via `replay` option or `TRACEPACT_REPLAY` env), and mock (`mode: 'mock'`). If none is configured, `runSkill()` throws an error with actionable instructions. `[OBSERVED]` `mcp?: McpConnection[]` option: when provided and no explicit `sandbox` is given, `buildMcpSandbox()` merges all connections into a single `MockSandbox`, merging `handlers`, `sources`, and `tools` from all connections. `[OBSERVED]` Cassette recording is triggered by `record` option (explicit path) or `TRACEPACT_RECORD=1` env var; when using the env var, a deterministic path is generated via `generateCassettePath()` — a `./cassettes/<slug>-<sha256[:8]>.json` path derived from the prompt. `[OBSERVED]` `TRACEPACT_CASSETTE_DIR` overrides the default `cassettes` directory for auto-generated paths. `[OBSERVED]` Token usage is only tracked in live mode (`TRACEPACT_LIVE=1`) when `inputTokens > 0`.
+- **Observaciones:** `[OBSERVED]` Three execution modes — live (`TRACEPACT_LIVE=1`), replay (cassette path via `replay` option or `TRACEPACT_REPLAY` env), and mock (`mode: 'mock'`). If none is configured, `runSkill()` throws an error with actionable instructions. `[OBSERVED]` `mcp?: McpConnection[]` option: when provided and no explicit `sandbox` is given, `buildMcpSandbox()` merges all connections into a single `MockSandbox`, merging `handlers`, `sources`, and `tools` from all connections. `[OBSERVED]` MCP connections opened during `runSkill()` are registered in `_pendingMcpConnections` — exported `_closePendingMcpConnections()` allows `setup.ts` (via `afterEach`) to close them automatically. `[OBSERVED]` Cassette recording is triggered by `record` option (explicit path) or `TRACEPACT_RECORD=1` env var; when using the env var, a deterministic path is generated via `generateCassettePath()` — a `./cassettes/<slug>-<sha256[:8]>.json` path whose hash now incorporates sorted tool names in addition to the prompt. `[OBSERVED]` In mock mode (`mode: 'mock'`), `runSkill()` returns a synthetic `RunResult` with `cacheStatus: 'skipped'` and real SHA-256 hashes for `skillHash`, `promptHash`, and `toolDefsHash` in the run manifest. `[OBSERVED]` `TRACEPACT_CASSETTE_DIR` overrides the default `cassettes` directory for auto-generated paths. `[OBSERVED]` Token usage is only tracked in live mode (`TRACEPACT_LIVE=1`) when `inputTokens > 0`.
 
 > **Lee también:** [flows.md — flujo de ejecución completo](./flows.md) · [wiring.md — cómo se inyecta](./wiring.md)
 
@@ -212,6 +214,8 @@ export interface RunSkillOptions {
   stubs?: CassetteStub[];;
   mode?: 'mock';;
 }
+
+export async function _closePendingMcpConnections(): Promise<void>
 
 export async function runSkill(skill: any, input: RunSkillOptions): Promise<RunResult>
 ```
@@ -248,7 +252,7 @@ _No exported symbols found._
 - **Dependencias externas:** none
 - **Consumido por:** `CacheStore` before writing to disk, `CassetteRecorder` before writing cassettes `[OBSERVED]`
 - **Estado interno:** stateless
-- **Observaciones:** `[OBSERVED]` Applied in two places: `CacheStore.set()` before writing to disk (`cache-store.ts`), and `CassetteRecorder.save()` before writing cassettes to disk (`recorder.ts`). Both instantiate `RedactionPipeline` with the user-supplied `RedactionConfig` so custom rules and `redactEnvValues` are respected. `[OBSERVED]` Beyond explicit `redactEnvValues` config, the pipeline auto-detects secret env vars at construction time: any env var whose name matches the pattern `(_API_KEY|_TOKEN|_SECRET|_PASSWORD|_CREDENTIAL|_PRIVATE_KEY)$` (case-insensitive) or starts with a well-known provider prefix (`ANTHROPIC_`, `OPENAI_`, `COHERE_`, `GEMINI_`) is automatically added as a redaction rule. `[OBSERVED]` Auto-detected names that overlap with explicit `redactEnvValues` are deduplicated — explicit names are collected first and excluded from the auto-detection scan. `[OBSERVED]` `redactObject<T>()` round-trips through `JSON.stringify` / `JSON.parse` — works on any JSON-serializable value.
+- **Observaciones:** `[OBSERVED]` Applied in two places: `CacheStore.set()` before writing to disk (`cache-store.ts`), and `CassetteRecorder.save()` before writing cassettes to disk (`recorder.ts`). Both instantiate `RedactionPipeline` with the user-supplied `RedactionConfig` so custom rules and `redactEnvValues` are respected. `[OBSERVED]` Also applied to `RunResult` in `executePrompt()` before returning — the returned result is already redacted. `[OBSERVED]` Beyond explicit `redactEnvValues` config, the pipeline auto-detects secret env vars at construction time: any env var whose name matches the pattern `(_API_KEY|_TOKEN|_SECRET|_PASSWORD|_CREDENTIAL|_PRIVATE_KEY|_PASS)$` (case-insensitive) or starts with a well-known provider prefix (`ANTHROPIC_`, `OPENAI_`, `COHERE_`, `GEMINI_`) is automatically added as a redaction rule. `[OBSERVED]` `SAFE_ENV_NAMES` allowlist prevents common non-secret env vars (e.g. `PATH`, `NODE_ENV`) from being flagged even if their name matches a suffix pattern. `[OBSERVED]` `looksLikeSecretValue()` entropy-based heuristic filters out low-entropy env var values (e.g. `'true'`, `'1'`, short words) to reduce false positives. `[OBSERVED]` Auto-detected names that overlap with explicit `redactEnvValues` are deduplicated — explicit names are collected first and excluded from the auto-detection scan. `[OBSERVED]` `redactObject<T>()` uses a recursive `redactValue` visitor instead of a `JSON.stringify`/`JSON.parse` round-trip — handles non-JSON-safe values and avoids full serialization overhead.
 
 > **Lee también:** [wiring.md — dónde se aplica como cross-cutting concern](./wiring.md)
 

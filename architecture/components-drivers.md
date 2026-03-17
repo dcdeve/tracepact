@@ -19,7 +19,7 @@ Otros grupos de componentes: [components-testing.md](./components-testing.md) ·
 - **Entradas:** `RunInput` (skill, prompt, tools, sandbox, conversation, config)
 - **Salidas:** `RunResult` (output, trace, messages, usage, duration, runManifest, cacheStatus?)
 - **Estado interno:** stateless
-- **Observaciones:** `[OBSERVED]` Clean interface. Capabilities struct (`DriverCapabilities`) lets callers query feature support (seed, streaming, parallelToolCalls) without casting. `[OBSERVED]` `RunResult.cacheStatus` is optional — it is set to `'ok'` or `'failed'` only after a live LLM call; absent when the result came from a cache hit or cassette replay. `[OBSERVED]` `RunConfig` includes an `onChunk` callback for streaming text chunks, and `stream` flag to enable streaming mode.
+- **Observaciones:** `[OBSERVED]` Clean interface. Capabilities struct (`DriverCapabilities`) lets callers query feature support (seed, streaming, parallelToolCalls, contentBlockConversation) without casting. `[OBSERVED]` `RunResult.cacheStatus` is now required — it is always set on every path: `'hit'` (cache), `'miss'` (live call, cache written), `'failed'` (live call, cache write failed), `'skipped'` (cache disabled / mock mode), or `'cassette_replay'` (cassette path). `[OBSERVED]` `RunConfig` includes an `onChunk` callback for streaming text chunks, `stream` flag to enable streaming mode, and `timeout?: number` for per-run timeout enforcement.
 
 > **Lee también:** [flows.md — flujo de ejecución completo](./flows.md)
 
@@ -36,6 +36,13 @@ export interface DriverCapabilities {
   streaming: boolean;
   systemPromptRole: boolean;
   maxContextWindow: number;
+  /**
+   * Whether the driver accepts `ContentBlock[]` as `Message.content` in
+   * `RunInput.conversation`. When `false`, all conversation messages must use
+   * plain `string` content (e.g. OpenAI). When `true`, the driver natively
+   * handles `ContentBlock[]` (e.g. Anthropic).
+   */
+  contentBlockConversation: boolean;
 }
 
 export interface HealthCheckResult {
@@ -81,9 +88,15 @@ export interface RunResult {
   usage: UsageInfo;
   duration: number;
   runManifest: RunManifest;
-  /** Indicates whether the result was written to cache after a live LLM call.
-   * Absent when the result came from a cache hit or cassette replay. */
-  cacheStatus?: 'ok' | 'failed';
+  /**
+   * Describes how the cache/replay layer handled this result:
+   * - `'miss'`             — live LLM call; result was written to cache successfully.
+   * - `'failed'`           — live LLM call; cache write failed (I/O error, etc.).
+   * - `'skipped'`          — live LLM call; cache is disabled (TRACEPACT_NO_CACHE=1 or config).
+   * - `'hit'`              — result came from the on-disk cache (no LLM call made).
+   * - `'cassette_replay'`  — result came from a cassette file (no LLM call made).
+   */
+  cacheStatus: 'miss' | 'failed' | 'skipped' | 'hit' | 'cassette_replay';
 }
 
 export interface UsageInfo {
@@ -118,7 +131,7 @@ export type ContentBlock =
 - **Entradas:** `RunInput`
 - **Salidas:** `RunResult`
 - **Estado interno:** lazily stateful — holds a cached `AnthropicClient` instance after first `getClient()` call
-- **Observaciones:** `[OBSERVED]` Dynamic import of SDK means the package is optional — if missing at runtime, `getClient()` throws a `DriverError` with explicit install instructions (`npm install @anthropic-ai/sdk`), not a generic "Cannot find module". `[OBSERVED]` The 200k context window value is hardcoded in capabilities, not queried from the API. `[OBSERVED]` `run()` enforces capability contracts: requesting `stream: true` on a driver with `capabilities.streaming === false` throws immediately. `[OBSERVED]` Constructor throws `DriverError` immediately if `ANTHROPIC_API_KEY` is not available (env or config) — not deferred to first `run()` call. `[OBSERVED]` `_setClient()` method allows injecting a mock `AnthropicClient` for testing without touching the real SDK. `[OBSERVED]` System messages in `input.conversation` are silently skipped (Anthropic sends system prompt via a dedicated `system` field, not a message role).
+- **Observaciones:** `[OBSERVED]` Dynamic import of SDK means the package is optional — if missing at runtime, `getClient()` throws a `DriverError` with explicit install instructions (`npm install @anthropic-ai/sdk`), not a generic "Cannot find module". `[OBSERVED]` The 200k context window value is hardcoded in capabilities, not queried from the API. `[OBSERVED]` `run()` enforces capability contracts: requesting `stream: true` on a driver with `capabilities.streaming === false` throws immediately. `[OBSERVED]` Constructor throws `DriverError` immediately if `ANTHROPIC_API_KEY` is not available (env or config) — not deferred to first `run()` call. `[OBSERVED]` `_setClient()` method allows injecting a mock `AnthropicClient` for testing without touching the real SDK. `[OBSERVED]` System messages in `input.conversation` are silently skipped (Anthropic sends system prompt via a dedicated `system` field, not a message role). `[OBSERVED]` `run()` enforces `RunConfig.timeout` via `Promise.race()` with an `AbortController` signal — timed-out runs throw `DriverError`. `[OBSERVED]` Streaming `for await` loop is wrapped in try-catch; JSON parse failures in streaming are logged as `log.warn` rather than crashing. `[OBSERVED]` `healthCheck()` uses a 5s timeout. `[OBSERVED]` Per-iteration `log.debug` timing added for LLM calls and `executeTool` calls. `[OBSERVED]` Returns `cacheStatus: 'miss'` on the live-call path.
 
 #### Firmas relevantes
 
@@ -175,7 +188,7 @@ export class AnthropicDriver implements AgentDriver {
 - **Entradas:** `RunInput`
 - **Salidas:** `RunResult`
 - **Estado interno:** lazily stateful — holds a cached `OpenAIClient` instance after first `getClient()` call
-- **Observaciones:** `[OBSERVED]` Two private methods split the streaming path: `runStreaming()` handles stream assembly (text + tool call reconstruction by index), `executeToolCalls()` handles sandbox dispatch — both streaming and non-streaming paths share `executeToolCalls()`, keeping error handling consistent across modes. `[OBSERVED]` `baseURL` override enables routing to any OpenAI-compatible endpoint (Groq, Together, Mistral, xAI, Cerebras, Fireworks, Perplexity, DeepSeek, OpenRouter) — this is how all OpenAI-compatible provider presets work without separate driver implementations. `[OBSERVED]` `run()` enforces capability contracts: requesting `stream: true` on a driver with `capabilities.streaming === false` throws immediately. `[OBSERVED]` Constructor throws `DriverError` immediately if the API key is not available — error message includes the provider name when one is given, not just the generic `OPENAI_API_KEY` hint. `[OBSERVED]` `_setClient()` method allows injecting a mock `OpenAIClient` for testing. `[OBSERVED]` OpenAI driver rejects `ContentBlock[]` in conversation messages at runtime — only string content is supported for multi-turn resumption. `[OBSERVED]` Streaming uses `stream_options: { include_usage: true }` to capture token counts from the final chunk.
+- **Observaciones:** `[OBSERVED]` Two private methods split the streaming path: `runStreaming()` handles stream assembly (text + tool call reconstruction by index), `executeToolCalls()` handles sandbox dispatch — both streaming and non-streaming paths share `executeToolCalls()`, keeping error handling consistent across modes. `[OBSERVED]` `baseURL` override enables routing to any OpenAI-compatible endpoint (Groq, Together, Mistral, xAI, Cerebras, Fireworks, Perplexity, DeepSeek, OpenRouter) — this is how all OpenAI-compatible provider presets work without separate driver implementations. `[OBSERVED]` `run()` enforces capability contracts: requesting `stream: true` on a driver with `capabilities.streaming === false` throws immediately. `[OBSERVED]` Constructor throws `DriverError` immediately if the API key is not available — error message includes the provider name when one is given, not just the generic `OPENAI_API_KEY` hint. `[OBSERVED]` `_setClient()` method allows injecting a mock `OpenAIClient` for testing. `[OBSERVED]` OpenAI driver rejects `ContentBlock[]` in conversation messages at runtime — only string content is supported for multi-turn resumption. `[OBSERVED]` Streaming uses `stream_options: { include_usage: true }` to capture token counts from the final chunk. `[OBSERVED]` `run()` enforces `RunConfig.timeout` via `Promise.race()` with an `AbortController` signal. `[OBSERVED]` Streaming `for await` loop is wrapped in try-catch; JSON parse failures logged as `log.warn`. `[OBSERVED]` `healthCheck()` uses a 5s timeout. `[OBSERVED]` Per-iteration `log.debug` timing added for LLM calls and `executeTool` calls. `[OBSERVED]` Returns `cacheStatus: 'miss'` on the live-call path.
 
 #### Firmas relevantes
 
@@ -232,13 +245,14 @@ export class OpenAIDriver implements AgentDriver {
 - **Entradas:** `TracepactConfig`
 - **Salidas:** `AgentDriver` instances
 - **Estado interno:** stateful — holds a `Map<string, AgentDriver>` and a `Map<string, Error>` for deferred init errors
-- **Observaciones:** `[OBSERVED]` `getDefault()` returns the driver for the `providers.default` key in config. `[OBSERVED]` Initialization errors are deferred — if a driver fails to construct, the error is stored internally and re-thrown as `ConfigError` with context when `get()` is called for that provider name. This distinguishes "provider not configured" from "provider failed to initialize". `[OBSERVED]` `NATIVE_DRIVERS` map only contains `{ anthropic: AnthropicDriver }` — `openai` and all other providers fall back to `OpenAIDriver` with a `baseURL` from presets. `[OBSERVED]` `DriverRegistry.register(name, DriverClass)` static method allows registering custom driver constructors at module level; must be called before `DriverRegistry` instantiation (or any `executePrompt()` call). `[OBSERVED]` `validateAll()` method throws a single `ConfigError` listing all providers that failed to initialize — intended for use in globalSetup to surface misconfiguration before any test runs.
+- **Observaciones:** `[OBSERVED]` `getDefault()` returns the driver for the `providers.default` key in config. `[OBSERVED]` Initialization errors are deferred — if a driver fails to construct, the error is stored internally and re-thrown as `ConfigError` with context when `get()` is called for that provider name. This distinguishes "provider not configured" from "provider failed to initialize". `[OBSERVED]` `NATIVE_DRIVERS` map only contains `{ anthropic: AnthropicDriver }` — `openai` and all other providers fall back to `OpenAIDriver` with a `baseURL` from presets. `[OBSERVED]` `DriverRegistry.register(name, DriverClass)` static method allows registering custom driver constructors at module level; must be called before `DriverRegistry` instantiation (or any `executePrompt()` call). `[OBSERVED]` `DriverRegistry.unregister(name)` static method removes a previously registered custom driver class — symmetric counterpart to `register()`, primarily useful in test teardown. `[OBSERVED]` `validateAll()` method throws a single `ConfigError` listing all providers that failed to initialize — called automatically by `executePrompt()` after registry construction (so misconfiguration surfaces before the first run, not mid-test).
 
 #### Firmas relevantes
 
 ```typescript
 class DriverRegistry {
   static register(name: string, DriverClass: new (opts: any) => AgentDriver): void
+  static unregister(name: string): void
   constructor(config: TracepactConfig)
   getDefault(): AgentDriver
   get(name: string): AgentDriver
@@ -260,6 +274,7 @@ _Auto-generated from code — do not edit this block manually._
 export class DriverRegistry {
   constructor(config: TracepactConfig)
   register(name: string, DriverClass: DriverConstructor): void
+  unregister(name: string): void
   getDefault(): AgentDriver
   get(name: string): AgentDriver
   validateAll(): void
@@ -282,7 +297,7 @@ export class DriverRegistry {
 - **Entradas:** `ParsedSkill | string | { systemPrompt: string }`, `ExecutePromptOptions`
 - **Salidas:** `RunResult`
 - **Estado interno:** module-level `_registryCache: Map<string, DriverRegistry>` — reuses registry instances across calls when provider config is stable
-- **Observaciones:** `[OBSERVED]` Replay mode short-circuits all driver/cache logic — if `opts.replay` is set, `CassettePlayer` handles the response directly and nothing else runs. `[OBSERVED]` Cache lookup uses a pre-run manifest built from stable fields (skillHash, promptHash, toolDefsHash, provider, model, temperature); the driver fills in `modelVersion`/`seed` post-run. `[OBSERVED]` `TRACEPACT_NO_CACHE=1` env var disables cache reads and writes at runtime. `[OBSERVED]` Registry cache is keyed by provider name; bypassed when `tracepactConfig.providers` is overridden per-call (to avoid stale entries). `[OBSERVED]` `clearRegistryCache()` exported alongside `executePrompt()` for use in test teardown (`afterAll`) to prevent stale registries across suites that modify env vars. `[OBSERVED]` `opts.healthCheck` flag triggers a `driver.healthCheck()` call that logs to stderr before the actual run.
+- **Observaciones:** `[OBSERVED]` Replay mode short-circuits all driver/cache logic — if `opts.replay` is set, `CassettePlayer` handles the response directly and nothing else runs. `[OBSERVED]` Cache lookup uses a pre-run manifest built from stable fields (skillHash, promptHash, toolDefsHash, provider, model, temperature); the driver fills in `modelVersion`/`seed` post-run. `[OBSERVED]` `toolDefsHash` is computed via `stableStringify` (canonical key-sorted JSON) and passed to `player.replay()` for cassette hash validation. `[OBSERVED]` `cacheStatus` is set on all code paths: `'hit'` (cache hit), `'miss'` (live call, cache write succeeded), `'failed'` (live call, cache write failed), `'skipped'` (cache disabled), `'cassette_replay'` (cassette path). `[OBSERVED]` `RedactionPipeline` is applied to `RunResult` before returning in `executePrompt()` — the returned result is already redacted regardless of cache/cassette path. `[OBSERVED]` `validateAll()` is called on the registry immediately after construction — misconfigured providers are detected before the first run attempt. `[OBSERVED]` `TRACEPACT_NO_CACHE=1` env var disables cache reads and writes at runtime. `[OBSERVED]` Registry cache is keyed by provider name; bypassed when `tracepactConfig.providers` is overridden per-call (to avoid stale entries). `[OBSERVED]` `clearRegistryCache()` exported alongside `executePrompt()` for use in test teardown (`afterAll`) to prevent stale registries across suites that modify env vars. `[OBSERVED]` `opts.healthCheck` flag triggers a `driver.healthCheck()` call that logs to stderr before the actual run.
 
 > **Lee también:** [flows.md — flujo de ejecución completo](./flows.md) · [wiring.md — cómo se inyecta](./wiring.md)
 
@@ -324,7 +339,7 @@ export async function executePrompt(skill: string | ParsedSkill | { systemPrompt
 - **Depende de:** `SNAPSHOT_PROVIDERS` (model catalog), `PROVIDER_ENV_KEYS` (presets), `defineConfig`
 - **Dependencias externas:** none
 - **Consumido por:** `executePrompt()`
-- **Observaciones:** `[OBSERVED]` `detectProvider()` priority: `TRACEPACT_PROVIDER` env var > first provider whose API key env var is set (in `PROVIDER_ENV_KEYS` order) > `'openai'` fallback. `[OBSERVED]` `getDefaultModel()` prefers models tagged `'recommended'` in `SNAPSHOT_PROVIDERS`, falls back to first model, then to `'gpt-4o'` if the provider is unknown. `[OBSERVED]` `resolveConfig()` short-circuits to `defineConfig(overrides)` if `overrides.providers` is already set — allows callers to fully bypass auto-detection.
+- **Observaciones:** `[OBSERVED]` `detectProvider()` priority: `TRACEPACT_PROVIDER` env var > first provider whose API key env var is set (in `PROVIDER_ENV_KEYS` order) > `'openai'` fallback. `[OBSERVED]` `detectProvider()` emits `log.debug()` showing which provider was detected and why. `[OBSERVED]` `getDefaultModel()` prefers models tagged `'recommended'` in `SNAPSHOT_PROVIDERS`, falls back to first model, then to `'gpt-4o'` if the provider is unknown. `[OBSERVED]` `resolveConfig()` short-circuits to `defineConfig(overrides)` if `overrides.providers` is already set — allows callers to fully bypass auto-detection.
 
 <!-- SOURCES: packages/core/src/driver/resolve.ts -->
 <!-- BEGIN:GENERATED -->
@@ -352,7 +367,7 @@ export function resolveConfig(providerName: string, overrides: Partial<Tracepact
 - **Dependencias externas:** none
 - **Consumido por:** `AnthropicDriver`, `OpenAIDriver`
 - **Estado interno:** `Semaphore` is stateful (queue of pending promises)
-- **Observaciones:** `[OBSERVED]` Retryable HTTP status codes: 429, 500, 502, 503, 529. `[INFERRED]` `maxConcurrency` is per-provider, not global — concurrent runs across multiple providers are not coordinated.
+- **Observaciones:** `[OBSERVED]` Retryable HTTP status codes: 429, 500, 502, 503, 529. `[INFERRED]` `maxConcurrency` is per-provider, not global — concurrent runs across multiple providers are not coordinated. `[OBSERVED]` `Semaphore` accepts a `timeoutMs` constructor param — if an acquire waits longer than that threshold, a `log.warn` is emitted. `[OBSERVED]` `getQueueLength()` method returns the number of pending acquires waiting on the semaphore.
 
 <!-- SOURCES: packages/core/src/driver/retry-policy.ts, packages/core/src/driver/semaphore.ts -->
 <!-- BEGIN:GENERATED -->
@@ -372,8 +387,9 @@ export class RetryPolicy {
 
 ```ts
 export class Semaphore {
-  constructor(max: number)
+  constructor(max: number, timeoutMs: number)
   async run(fn: () => Promise<T>): Promise<T>
+  getQueueLength(): number
 }
 ```
 <!-- END:GENERATED -->

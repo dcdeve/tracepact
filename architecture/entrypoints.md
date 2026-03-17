@@ -102,8 +102,8 @@ _Auto-generated from code — do not edit this block manually._
 ### `runSkill()` (Vitest integration)
 - **Path:** `packages/vitest/src/run-skill.ts`
 - **Tipo:** Programmatic entrypoint (called from test files)
-- **Inicializa:** checks `TRACEPACT_LIVE`/`TRACEPACT_REPLAY` env vars, optionally builds `MockSandbox` from MCP connections, then delegates to `executePrompt()`
-- **Transfiere control a:** `executePrompt()` (core) → `detectProvider()` → `resolveConfig()` → `new DriverRegistry(config)` → `registry.get(providerName)` → `AgentDriver.run()`
+- **Inicializa:** checks `TRACEPACT_LIVE`/`TRACEPACT_REPLAY` env vars, optionally builds `MockSandbox` from MCP connections, tracks open connections in `_pendingMcpConnections`, then delegates to `executePrompt()`
+- **Transfiere control a:** `executePrompt()` (core) → `detectProvider()` → `resolveConfig()` → `new DriverRegistry(config)` → `validateAll()` → `registry.get(providerName)` → `AgentDriver.run()`
 
 ### `tracepact-mcp-server` (MCP server binary)
 - **Path:** `packages/mcp-server/src/index.ts`

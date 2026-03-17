@@ -21,7 +21,6 @@ _Auto-generated from code — do not edit this block manually._
 │   ├── index.md
 │   ├── interfaces.md
 │   ├── inventory.md
-│   ├── REVIEW.md
 │   ├── shape.md
 │   ├── signatures.md
 │   ├── tech-debt.md
@@ -137,11 +136,11 @@ _Auto-generated from code — do not edit this block manually._
 | Path | Type | Files | Lines |
 |------|------|-------|-------|
 | `TODO/` | directory | 2 | 0 |
-| `architecture/` | directory | 17 | 0 |
+| `architecture/` | directory | 16 | 0 |
 | `docs/` | docs | 15 | 0 |
 | `examples/` | directory | 18 | 776 |
 | `experimental/` | directory | 1 | 0 |
-| `packages/` | packages | 204 | 17672 |
+| `packages/` | packages | 204 | 18269 |
 | `scripts/` | scripts | 1 | 958 |
 
 ## Package internals
@@ -153,21 +152,21 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/cli` | `src/commands/` | 9 | 1129 |
 | `packages/cli` | `src/patterns/` | 1 | 191 |
 | `packages/cli` | `src/index.ts` | 1 | 122 |
-| `packages/core` | `src/audit/` | 4 | 306 |
-| `packages/core` | `src/cache/` | 2 | 297 |
+| `packages/core` | `src/audit/` | 4 | 311 |
+| `packages/core` | `src/cache/` | 2 | 307 |
 | `packages/core` | `src/capture/` | 3 | 212 |
-| `packages/core` | `src/cassette/` | 5 | 348 |
-| `packages/core` | `src/config/` | 3 | 133 |
+| `packages/core` | `src/cassette/` | 5 | 435 |
+| `packages/core` | `src/config/` | 3 | 135 |
 | `packages/core` | `src/cost/` | 1 | 68 |
-| `packages/core` | `src/driver/` | 10 | 1352 |
+| `packages/core` | `src/driver/` | 10 | 1596 |
 | `packages/core` | `src/errors/` | 4 | 45 |
 | `packages/core` | `src/flake/` | 1 | 97 |
-| `packages/core` | `src/matchers/` | 22 | 2756 |
-| `packages/core` | `src/mcp/` | 2 | 168 |
+| `packages/core` | `src/matchers/` | 22 | 2800 |
+| `packages/core` | `src/mcp/` | 2 | 190 |
 | `packages/core` | `src/models/` | 4 | 512 |
 | `packages/core` | `src/parser/` | 3 | 152 |
-| `packages/core` | `src/redaction/` | 3 | 80 |
-| `packages/core` | `src/sandbox/` | 13 | 954 |
+| `packages/core` | `src/redaction/` | 3 | 164 |
+| `packages/core` | `src/sandbox/` | 13 | 1022 |
 | `packages/core` | `src/scenarios/` | 1 | 67 |
 | `packages/core` | `src/tools/` | 2 | 119 |
 | `packages/core` | `src/trace/` | 2 | 92 |
@@ -184,8 +183,8 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/vitest` | `src/json-reporter.ts` | 1 | 67 |
 | `packages/vitest` | `src/matchers.ts` | 1 | 198 |
 | `packages/vitest` | `src/plugin.ts` | 1 | 24 |
-| `packages/vitest` | `src/run-skill.ts` | 1 | 161 |
-| `packages/vitest` | `src/setup.ts` | 1 | 74 |
+| `packages/vitest` | `src/run-skill.ts` | 1 | 198 |
+| `packages/vitest` | `src/setup.ts` | 1 | 63 |
 | `packages/vitest` | `src/test-live.ts` | 1 | 10 |
 | `packages/vitest` | `src/token-tracker.ts` | 1 | 47 |
 <!-- END:GENERATED -->

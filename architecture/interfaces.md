@@ -61,7 +61,7 @@ interface EmbeddingProvider {
 }
 ```
 
-> **[OBSERVED]** Only one bundled implementation exists: `OpenAIEmbeddingProvider`. The interface is injectable via matcher options (`SemanticSimilarityOptions.provider`, etc.) — custom providers can be passed. No plugin registration mechanism in CLI.
+> **[OBSERVED]** Only one bundled implementation exists: `OpenAIEmbeddingProvider`, which accepts optional `model` and `dimensions` constructor params to select specific embedding models without subclassing. The interface is injectable via matcher options (`SemanticSimilarityOptions.provider`, etc.) — custom providers can be passed. No plugin registration mechanism in CLI.
 
 ---
 

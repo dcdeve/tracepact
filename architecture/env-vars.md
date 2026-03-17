@@ -25,7 +25,7 @@ _Auto-generated from code — do not edit this block manually._
 | `TRACEPACT_JSON_REPORTER` | `packages/cli/src/commands/run.ts` |
 | `TRACEPACT_LIVE` | `packages/vitest/src/matchers.ts`, `packages/vitest/src/run-skill.ts`, `packages/vitest/src/setup.ts`, `packages/vitest/src/test-live.ts`, `packages/cli/src/commands/run.ts`, `packages/mcp-server/src/tools/run.ts` |
 | `TRACEPACT_LOG` | `packages/core/src/logger.ts` |
-| `TRACEPACT_MODEL` | `packages/vitest/src/setup.ts`, `packages/core/src/driver/resolve.ts` |
+| `TRACEPACT_MODEL` | `packages/core/src/driver/resolve.ts` |
 | `TRACEPACT_NO_CACHE` | `packages/cli/src/commands/run.ts`, `packages/core/src/driver/execute.ts` |
 | `TRACEPACT_PROVIDER` | `packages/vitest/src/matchers.ts`, `packages/vitest/src/run-skill.ts`, `packages/vitest/src/setup.ts`, `packages/cli/src/commands/run.ts`, `packages/core/src/driver/resolve.ts`, `packages/mcp-server/src/tools/run.ts` |
 | `TRACEPACT_RECORD` | `packages/vitest/src/run-skill.ts`, `packages/cli/src/commands/run.ts` |
