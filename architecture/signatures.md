@@ -120,6 +120,7 @@ export async function diffCassettes(cassettePathA: string, cassettePathB: string
 export class CassettePlayer {
   constructor(filePath: string, stubs: CassetteStub[], strict: boolean)
   async load(): Promise<Cassette>
+  async reload(): Promise<Cassette>
   async replay(currentPrompt: string, currentToolDefsHash: string): Promise<RunResult>
 }
 ```
@@ -154,7 +155,7 @@ export class TokenAccumulator {
 
 ```ts
 export class AnthropicDriver implements AgentDriver {
-  constructor(config: { model: string; apiKey?: string; providerName?: string; maxConcurrency?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
+  constructor(config: { model: string; apiKey?: string; providerName?: string; maxConcurrency?: number; semaphoreTimeoutMs?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
   async run(input: RunInput): Promise<RunResult>
   async healthCheck(): Promise<HealthCheckResult>
 }
@@ -172,7 +173,7 @@ export async function executePrompt(skill: string | ParsedSkill | { systemPrompt
 
 ```ts
 export class OpenAIDriver implements AgentDriver {
-  constructor(config: { model: string; apiKey?: string; baseURL?: string; providerName?: string; maxConcurrency?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
+  constructor(config: { model: string; apiKey?: string; baseURL?: string; providerName?: string; maxConcurrency?: number; semaphoreTimeoutMs?: number; retry?: { maxAttempts?: number; baseDelayMs?: number; maxDelayMs?: number; }; })
   async run(input: RunInput): Promise<RunResult>
   async healthCheck(): Promise<HealthCheckResult>
 }
@@ -181,6 +182,8 @@ export class OpenAIDriver implements AgentDriver {
 ## `packages/core/src/driver/registry.ts`
 
 ```ts
+export function _setRegistryCacheChecker(fn: () => boolean): void
+
 export class DriverRegistry {
   constructor(config: TracepactConfig)
   register(name: string, DriverClass: DriverConstructor): void
@@ -361,7 +364,7 @@ export function toMatchJsonSchema(output: string, schema: JsonSchemaSpec): Match
 
 export function toHaveLineCount(output: string, spec: LineCountSpec): MatcherResult
 
-export function toHaveFileWritten(writesOrTrace: ToolTrace | readonly WriteCapture[], path: string, contentMatcher: string | RegExp): MatcherResult
+export function toHaveFileWritten(writesOrTrace: ToolTrace | readonly WriteCapture[], path: string, contentMatcher: string | RegExp, writeToolName: string): MatcherResult
 ```
 
 ## `packages/core/src/matchers/tier2/index.ts`
@@ -539,7 +542,7 @@ export class RedactionPipeline {
 ## `packages/core/src/sandbox/container/container-sandbox.ts`
 
 ```ts
-export class ContainerSandbox {
+export class ContainerSandbox implements Sandbox {
   constructor(config: ContainerConfig, docker: DockerClient, mcpServers: Record<string, McpMockServer>)
   async initialize(): Promise<void>
   async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult>
@@ -591,6 +594,16 @@ export function mockBash(commands: Record<string, MockBashResult>): MockToolImpl
 export function passthrough(): MockToolImpl
 ```
 
+## `packages/core/src/sandbox/glob-utils.ts`
+
+```ts
+export function globToRegex(pattern: string): RegExp
+
+export function isAllowedPath(path: string, allowList: string[]): boolean
+
+export function isAllowedCommand(command: string, allowList: (string | RegExp)[]): boolean
+```
+
 ## `packages/core/src/sandbox/mcp/mcp-mock-server.ts`
 
 ```ts
@@ -607,7 +620,7 @@ export class McpMockServer {
 ## `packages/core/src/sandbox/mock-sandbox.ts`
 
 ```ts
-export class MockSandbox {
+export class MockSandbox implements Sandbox {
   constructor(tools: MockToolDefs, sources: Record<string, ToolCallSource>, writeToolName: string, options: MockSandboxOptions)
   async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult>
   getTrace(): ToolTrace
@@ -625,7 +638,7 @@ export function createProcessTools(config: ProcessSandboxConfig): ProcessSandbox
 ## `packages/core/src/sandbox/process/process-sandbox.ts`
 
 ```ts
-export class ProcessSandbox {
+export class ProcessSandbox implements Sandbox {
   constructor(config: ProcessSandboxConfig)
   async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult>
   isAllowedPath(path: string): boolean
@@ -669,13 +682,13 @@ export async function handleAudit(args: { skill_path: string; }): Promise<{ risk
 ## `packages/mcp-server/src/tools/capture.ts`
 
 ```ts
-export async function handleCapture(args: { skill_path: string; prompt: string; }): Promise<{ testFile: string; cassettePath: string; assertionsGenerated: number; error?: string; }>
+export async function handleCapture(args: { skill_path: string; prompt: string; cassette_path?: string | undefined; }): Promise<{ testFile: string; cassettePath: string; assertionsGenerated: number; error?: string; }>
 ```
 
 ## `packages/mcp-server/src/tools/diff.ts`
 
 ```ts
-export async function handleDiff(args: { cassette_a: string; cassette_b: string; ignore_keys?: string[] | undefined; ignore_tools?: string[] | undefined; }): Promise<any>
+export async function handleDiff(args: { cassette_a: string; cassette_b: string; ignore_keys?: string[] | undefined; ignore_tools?: string[] | undefined; }): Promise<DiffResult>
 ```
 
 ## `packages/mcp-server/src/tools/list-tests.ts`
@@ -693,7 +706,7 @@ export function handleReplay(args: { cassette_path: string; }): { pass: boolean;
 ## `packages/mcp-server/src/tools/run.ts`
 
 ```ts
-export function handleRun(args: { skill_path: string; live?: boolean | undefined; provider?: string | undefined; budget?: number | undefined; }): { pass: boolean; output: string; error?: string; }
+export async function handleRun(args: { skill_path: string; live?: boolean | undefined; provider?: string | undefined; budget?: number | undefined; }): Promise<{ pass: boolean; output: string; error?: string; }>
 ```
 
 ## `packages/promptfoo/src/assertions.ts`

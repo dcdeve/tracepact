@@ -19,13 +19,13 @@ _Auto-generated from code — do not edit this block manually._
 | `PERPLEXITY_API_KEY` | `packages/core/src/driver/presets.ts` |
 | `TOGETHER_API_KEY` | `packages/core/src/driver/presets.ts` |
 | `TRACEPACT_BUDGET` | `packages/vitest/src/token-tracker.ts`, `packages/cli/src/commands/run.ts`, `packages/mcp-server/src/tools/run.ts` |
-| `TRACEPACT_CASSETTE_DIR` | `packages/vitest/src/run-skill.ts` |
+| `TRACEPACT_CASSETTE_DIR` | `packages/vitest/src/run-skill.ts`, `packages/mcp-server/src/tools/list-tests.ts` |
 | `TRACEPACT_FULL` | `packages/vitest/src/annotations.ts`, `packages/cli/src/commands/run.ts` |
 | `TRACEPACT_HEALTH_CHECK_STRICT` | `packages/vitest/src/setup.ts`, `packages/cli/src/commands/run.ts` |
 | `TRACEPACT_JSON_REPORTER` | `packages/cli/src/commands/run.ts` |
 | `TRACEPACT_LIVE` | `packages/vitest/src/matchers.ts`, `packages/vitest/src/run-skill.ts`, `packages/vitest/src/setup.ts`, `packages/vitest/src/test-live.ts`, `packages/cli/src/commands/run.ts`, `packages/mcp-server/src/tools/run.ts` |
 | `TRACEPACT_LOG` | `packages/core/src/logger.ts` |
-| `TRACEPACT_MODEL` | `packages/core/src/driver/resolve.ts` |
+| `TRACEPACT_MODEL` | `packages/core/src/driver/execute.ts`, `packages/core/src/driver/resolve.ts` |
 | `TRACEPACT_NO_CACHE` | `packages/cli/src/commands/run.ts`, `packages/core/src/driver/execute.ts` |
 | `TRACEPACT_PROVIDER` | `packages/vitest/src/matchers.ts`, `packages/vitest/src/run-skill.ts`, `packages/vitest/src/setup.ts`, `packages/cli/src/commands/run.ts`, `packages/core/src/driver/resolve.ts`, `packages/mcp-server/src/tools/run.ts` |
 | `TRACEPACT_RECORD` | `packages/vitest/src/run-skill.ts`, `packages/cli/src/commands/run.ts` |

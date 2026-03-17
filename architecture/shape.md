@@ -21,6 +21,7 @@ _Auto-generated from code — do not edit this block manually._
 │   ├── index.md
 │   ├── interfaces.md
 │   ├── inventory.md
+│   ├── REVIEW.md
 │   ├── shape.md
 │   ├── signatures.md
 │   ├── tech-debt.md
@@ -111,8 +112,16 @@ _Auto-generated from code — do not edit this block manually._
 ├── scripts
 │   └── generate-architecture.ts
 ├── TODO
-│   ├── claude-code.md
-│   └── mcp.md
+│   ├── claude-code
+│   │   ├── claude-code.md
+│   │   └── plan.md
+│   ├── mcp
+│   │   ├── mcp.md
+│   │   └── plan.md
+│   ├── open-contract
+│   │   ├── open-contract.md
+│   │   └── plan.md
+│   └── strategy.md
 ├── biome.json
 ├── CHANGELOG.md
 ├── CLAUDE.md
@@ -135,12 +144,12 @@ _Auto-generated from code — do not edit this block manually._
 
 | Path | Type | Files | Lines |
 |------|------|-------|-------|
-| `TODO/` | directory | 2 | 0 |
-| `architecture/` | directory | 16 | 0 |
+| `TODO/` | directory | 7 | 0 |
+| `architecture/` | directory | 17 | 0 |
 | `docs/` | docs | 15 | 0 |
 | `examples/` | directory | 18 | 776 |
 | `experimental/` | directory | 1 | 0 |
-| `packages/` | packages | 204 | 18269 |
+| `packages/` | packages | 205 | 18469 |
 | `scripts/` | scripts | 1 | 958 |
 
 ## Package internals
@@ -149,30 +158,30 @@ _Auto-generated from code — do not edit this block manually._
 
 | Package | Module | Files | Lines |
 |---------|--------|-------|-------|
-| `packages/cli` | `src/commands/` | 9 | 1129 |
+| `packages/cli` | `src/commands/` | 9 | 1134 |
 | `packages/cli` | `src/patterns/` | 1 | 191 |
 | `packages/cli` | `src/index.ts` | 1 | 122 |
 | `packages/core` | `src/audit/` | 4 | 311 |
-| `packages/core` | `src/cache/` | 2 | 307 |
-| `packages/core` | `src/capture/` | 3 | 212 |
-| `packages/core` | `src/cassette/` | 5 | 435 |
+| `packages/core` | `src/cache/` | 2 | 321 |
+| `packages/core` | `src/capture/` | 3 | 216 |
+| `packages/core` | `src/cassette/` | 5 | 457 |
 | `packages/core` | `src/config/` | 3 | 135 |
 | `packages/core` | `src/cost/` | 1 | 68 |
-| `packages/core` | `src/driver/` | 10 | 1596 |
+| `packages/core` | `src/driver/` | 10 | 1629 |
 | `packages/core` | `src/errors/` | 4 | 45 |
-| `packages/core` | `src/flake/` | 1 | 97 |
-| `packages/core` | `src/matchers/` | 22 | 2800 |
-| `packages/core` | `src/mcp/` | 2 | 190 |
+| `packages/core` | `src/flake/` | 1 | 108 |
+| `packages/core` | `src/matchers/` | 22 | 2838 |
+| `packages/core` | `src/mcp/` | 2 | 204 |
 | `packages/core` | `src/models/` | 4 | 512 |
 | `packages/core` | `src/parser/` | 3 | 152 |
 | `packages/core` | `src/redaction/` | 3 | 164 |
-| `packages/core` | `src/sandbox/` | 13 | 1022 |
+| `packages/core` | `src/sandbox/` | 14 | 1038 |
 | `packages/core` | `src/scenarios/` | 1 | 67 |
-| `packages/core` | `src/tools/` | 2 | 119 |
+| `packages/core` | `src/tools/` | 2 | 122 |
 | `packages/core` | `src/trace/` | 2 | 92 |
 | `packages/core` | `src/index.ts` | 1 | 255 |
 | `packages/core` | `src/logger.ts` | 1 | 51 |
-| `packages/mcp-server` | `src/tools/` | 7 | 351 |
+| `packages/mcp-server` | `src/tools/` | 7 | 356 |
 | `packages/mcp-server` | `src/index.ts` | 1 | 143 |
 | `packages/promptfoo` | `src/assertions.ts` | 1 | 106 |
 | `packages/promptfoo` | `src/index.ts` | 1 | 15 |
@@ -180,13 +189,13 @@ _Auto-generated from code — do not edit this block manually._
 | `packages/vitest` | `src/annotations.ts` | 1 | 16 |
 | `packages/vitest` | `src/augment.d.ts` | 1 | 45 |
 | `packages/vitest` | `src/index.ts` | 1 | 44 |
-| `packages/vitest` | `src/json-reporter.ts` | 1 | 67 |
+| `packages/vitest` | `src/json-reporter.ts` | 1 | 75 |
 | `packages/vitest` | `src/matchers.ts` | 1 | 198 |
-| `packages/vitest` | `src/plugin.ts` | 1 | 24 |
-| `packages/vitest` | `src/run-skill.ts` | 1 | 198 |
-| `packages/vitest` | `src/setup.ts` | 1 | 63 |
+| `packages/vitest` | `src/plugin.ts` | 1 | 30 |
+| `packages/vitest` | `src/run-skill.ts` | 1 | 204 |
+| `packages/vitest` | `src/setup.ts` | 1 | 67 |
 | `packages/vitest` | `src/test-live.ts` | 1 | 10 |
-| `packages/vitest` | `src/token-tracker.ts` | 1 | 47 |
+| `packages/vitest` | `src/token-tracker.ts` | 1 | 58 |
 <!-- END:GENERATED -->
 ## Roles arquitectónicos
 | Path | Tipo | Rol arquitectónico | Notas |

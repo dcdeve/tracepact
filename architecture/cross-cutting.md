@@ -7,7 +7,7 @@
 ### Error Handling
 - **Estrategia:** Mixta — typed errors for known conditions, unhandled rejections for unexpected failures
 - **Implementación:** `[OBSERVED]` `TracepactError` hierarchy in `core/src/errors/` — `ConfigError`, `DriverError`, `SkillParseError` each carry structured fields. Retry logic in `RetryPolicy` catches API errors by status code.
-- **Gaps:** `[OBSERVED]` MCP server tool handlers do not have a unified error wrapping layer — each handler (`audit.ts`, `capture.ts`, `diff.ts`, `replay.ts`, `run.ts`, `list-tests.ts`) has its own ad-hoc try-catch.
+- **Gaps:** `[OBSERVED]` MCP server tool handlers have mixed error semantics: `replay.ts`, `diff.ts`, and `capture.ts` now re-throw infrastructure errors (missing files, process failures) so the MCP transport signals a proper error response; `audit.ts` and `run.ts` still return domain failures as inline `{ error: ... }` payloads in successful responses.
 
 ### Logging
 - **Estrategia:** Consistent
@@ -17,7 +17,7 @@
 ### Auth / API Key Management
 - **Estrategia:** Env var convention
 - **Implementación:** `[OBSERVED]` API keys are read from env vars in `resolveConfig()`. `RedactionPipeline` scrubs known API key patterns from strings.
-- **Gaps:** `[INFERRED]` Keys are passed directly to SDK constructors — no secret rotation, no vault integration. `redactEnvValues` in `RedactionConfig` must be manually populated to redact specific env var values.
+- **Gaps:** `[INFERRED]` Keys are passed directly to SDK constructors — no secret rotation, no vault integration. `redactEnvValues` in `RedactionConfig` must be manually populated to redact specific env var values. `[OBSERVED]` `RedactionPipeline` scans `process.env` once at construction — secrets added after construction are not redacted. `TracepactJsonReporter` defers construction to `onFinished()` to ensure all env-injected secrets are captured before writing results.
 
 ### Validation
 - **Estrategia:** Boundary validation only
@@ -27,4 +27,4 @@
 ### Token Budget
 - **Estrategia:** Opt-in via `TRACEPACT_BUDGET`
 - **Implementación:** `[OBSERVED]` `TokenAccumulator` in `core/src/cost/` tracks live vs cached tokens separately. `exceedsBudget()` checked during runs.
-- **Gaps:** `[OBSERVED]` `exceedsBudget()` is checked in `packages/vitest/src/token-tracker.ts` inside `trackUsage()`, which is called after each live LLM call in `runSkill()`. When budget is exceeded it throws immediately, stopping the run mid-loop.
+- **Observaciones:** `[OBSERVED]` `exceedsBudget()` is checked in `packages/vitest/src/token-tracker.ts` inside `trackUsage()`, called after each live LLM call in `runSkill()` and after each judge call in `adaptAsyncWithJudgeTokens()`. When budget is exceeded it throws immediately, stopping the run mid-loop. `[OBSERVED]` `TRACEPACT_BUDGET` is a suite-level limit — judge tokens (from `toPassJudge`, `toMatchTrajectory`) now accumulate in `globalTokens` alongside agent tokens, so the budget applies consistently to all LLM spend.

@@ -33,6 +33,23 @@ type MockToolImpl = (args: Record<string, unknown>) => ToolResult | Promise<Tool
 
 ---
 
+### `Sandbox`
+- **Ubicación:** `packages/core/src/sandbox/types.ts`
+- **Define el contrato entre:** `executePrompt()` / `runSkill()` ↔ `MockSandbox`, `ProcessSandbox`, `ContainerSandbox`
+- **Firma:**
+
+```typescript
+interface Sandbox {
+  executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult>;
+  getTrace(): ToolTrace;
+  getWrites(): ReadonlyArray<WriteCapture>;
+}
+```
+
+> **[OBSERVED]** All three concrete sandbox classes declare `implements Sandbox`. `ExecutePromptOptions.sandbox` is typed as `Sandbox` (the interface), not `MockSandbox` — any conforming sandbox can be passed to `executePrompt()`.
+
+---
+
 ### `AuditRule`
 - **Ubicación:** `packages/core/src/audit/`
 - **Define el contrato entre:** `AuditEngine` ↔ individual rule implementations
@@ -45,6 +62,27 @@ interface AuditRule {
   readonly check: (input: AuditInput) => AuditFinding[];
 }
 ```
+
+> **[OBSERVED]** `check` is synchronous — rules that need I/O must be refactored to async when the contract is updated.
+
+---
+
+### `McpClientConfig`
+- **Ubicación:** `packages/core/src/mcp/client.ts`
+- **Define el contrato entre:** `McpClient` constructor ↔ callers (`buildMcpSandbox`)
+- **Firma:**
+
+```typescript
+interface McpClientConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  toolCallTimeoutMs?: number;   // default: 30000
+  connectTimeoutMs?: number;    // default: 10000 — times out the handshake + listTools
+}
+```
+
+> **[OBSERVED]** Both `connect()` (handshake + `listTools`) and `callTool()` are guarded by independent timeouts. `_connected` is set to `true` only after `listTools()` completes successfully — a failed `listTools` leaves the client disconnected with an empty tools list.
 
 ---
 
