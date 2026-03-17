@@ -438,12 +438,13 @@ export class OpenAIDriver implements AgentDriver {
     const start = performance.now();
     const HEALTH_CHECK_TIMEOUT_MS = 5_000;
     try {
-      const timeout = new Promise<never>((_, reject) =>
-        setTimeout(
+      let timeoutHandle: ReturnType<typeof setTimeout>;
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
           () => reject(new Error(`healthCheck timed out after ${HEALTH_CHECK_TIMEOUT_MS}ms`)),
           HEALTH_CHECK_TIMEOUT_MS
-        )
-      );
+        );
+      });
       const response = (await Promise.race([
         client.chat.completions.create({
           model: this.model,
@@ -451,7 +452,7 @@ export class OpenAIDriver implements AgentDriver {
           messages: [{ role: 'user', content: 'ping' }],
         }),
         timeout,
-      ])) as OpenAIChatCompletion;
+      ]).finally(() => clearTimeout(timeoutHandle))) as OpenAIChatCompletion;
       const modelVersion = response.system_fingerprint ?? undefined;
       return {
         ok: true,

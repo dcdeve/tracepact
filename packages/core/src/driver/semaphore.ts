@@ -42,13 +42,6 @@ export class Semaphore {
       let settled = false;
       const start = Date.now();
 
-      const resolver = () => {
-        settled = true;
-        resolve();
-      };
-
-      this.queue.push(resolver);
-
       // Warn if the caller is waiting suspiciously long.
       const warnTimer = setTimeout(() => {
         if (!settled) {
@@ -57,6 +50,14 @@ export class Semaphore {
           );
         }
       }, WARN_AFTER_MS);
+
+      const resolver = () => {
+        settled = true;
+        clearTimeout(warnTimer);
+        resolve();
+      };
+
+      this.queue.push(resolver);
 
       // Optional hard timeout: reject and evict from queue.
       if (this.timeoutMs !== undefined) {
