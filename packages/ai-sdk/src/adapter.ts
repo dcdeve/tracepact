@@ -43,10 +43,19 @@ export function promptToMessages(prompt: LanguageModelV3Prompt): Message[] {
           if (part.type === 'text') {
             blocks.push({ type: 'text', text: part.text });
           } else if (part.type === 'tool-call') {
-            const input =
-              typeof part.input === 'object' && part.input !== null
-                ? (part.input as Record<string, unknown>)
-                : {};
+            let input: Record<string, unknown>;
+            if (typeof part.input === 'object' && part.input !== null) {
+              input = part.input as Record<string, unknown>;
+            } else if (typeof part.input === 'string') {
+              try {
+                const parsed = JSON.parse(part.input);
+                input = typeof parsed === 'object' && parsed !== null ? parsed : {};
+              } catch {
+                input = {};
+              }
+            } else {
+              input = {};
+            }
             blocks.push({
               type: 'tool_use',
               id: part.toolCallId,
