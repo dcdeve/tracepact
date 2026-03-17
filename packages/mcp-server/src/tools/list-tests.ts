@@ -28,6 +28,13 @@ export function handleListTests(args: { skill_path: string }): {
 
   // Search for cassettes
   const cassetteDirs = [join(skillDir, 'cassettes'), join(skillDir, '__cassettes__')];
+  const envCassetteDir = process.env.TRACEPACT_CASSETTE_DIR;
+  if (envCassetteDir) {
+    const resolvedEnvDir = resolve(envCassetteDir);
+    if (!cassetteDirs.includes(resolvedEnvDir)) {
+      cassetteDirs.push(resolvedEnvDir);
+    }
+  }
   for (const dir of cassetteDirs) {
     try {
       scanDir(dir, (filePath, name) => {
