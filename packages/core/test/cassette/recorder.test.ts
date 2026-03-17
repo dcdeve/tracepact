@@ -68,16 +68,22 @@ describe('CassetteRecorder', () => {
     const result = makeRunResult();
 
     await recorder.save(result, {
+      source: 'skill_run',
       skillHash: 'abc123',
       prompt: 'deploy the app',
+      promptHash: 'def456',
+      toolDefsHash: 'ghi789',
       provider: 'openai',
       model: 'gpt-4o',
+      temperature: 0,
       frameworkVersion: '0.2.0',
+      driverVersion: 'openai-1.0.0',
     });
 
     const raw = await readFile(filePath, 'utf-8');
     const cassette: Cassette = JSON.parse(raw);
-    expect(cassette.version).toBe(1);
+    expect(cassette.version).toBe(2);
+    expect(cassette.metadata.source).toBe('skill_run');
     expect(cassette.result.output).toBe('Deployment complete.');
   });
 
@@ -86,15 +92,22 @@ describe('CassetteRecorder', () => {
     const recorder = new CassetteRecorder(filePath);
 
     await recorder.save(makeRunResult(), {
+      source: 'skill_run',
       skillHash: 'abc123',
       prompt: 'deploy the app',
+      promptHash: 'def456',
+      toolDefsHash: 'ghi789',
       provider: 'openai',
       model: 'gpt-4o',
+      temperature: 0,
       frameworkVersion: '0.2.0',
+      driverVersion: 'openai-1.0.0',
     });
 
     const raw = await readFile(filePath, 'utf-8');
     const cassette: Cassette = JSON.parse(raw);
+    expect(cassette.metadata.source).toBe('skill_run');
+    if (cassette.metadata.source !== 'skill_run') throw new Error('unexpected');
     expect(cassette.metadata.prompt).toBe('deploy the app');
     expect(cassette.metadata.provider).toBe('openai');
     expect(cassette.metadata.model).toBe('gpt-4o');
@@ -106,11 +119,16 @@ describe('CassetteRecorder', () => {
     const recorder = new CassetteRecorder(filePath);
 
     await recorder.save(makeRunResult(), {
+      source: 'skill_run',
       skillHash: 'abc123',
       prompt: 'deploy the app',
+      promptHash: 'def456',
+      toolDefsHash: 'ghi789',
       provider: 'openai',
       model: 'gpt-4o',
+      temperature: 0,
       frameworkVersion: '0.2.0',
+      driverVersion: 'openai-1.0.0',
     });
 
     const raw = await readFile(filePath, 'utf-8');
@@ -152,11 +170,16 @@ describe('CassetteRecorder', () => {
     });
 
     await recorder.save(result, {
+      source: 'skill_run',
       skillHash: 'mcp123',
       prompt: 'test mcp',
+      promptHash: 'mcp456',
+      toolDefsHash: 'mcp789',
       provider: 'openai',
       model: 'gpt-4o',
+      temperature: 0,
       frameworkVersion: '0.2.0',
+      driverVersion: 'openai-1.0.0',
     });
 
     const player = new CassettePlayer(filePath);

@@ -19,7 +19,7 @@ export class CassetteRecorder {
 
   async save(result: RunResult, metadata: CassetteMetadata): Promise<void> {
     const cassette: Cassette = {
-      version: 1,
+      version: 2,
       recordedAt: new Date().toISOString(),
       metadata,
       result: {

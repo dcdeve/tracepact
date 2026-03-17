@@ -184,6 +184,8 @@ export { diffCassettes } from './cassette/diff.js';
 export type {
   Cassette,
   CassetteMetadata,
+  SkillRunMetadata,
+  ObservedMetadata,
   CassetteResult,
   CassetteToolCall,
   CassetteStub,

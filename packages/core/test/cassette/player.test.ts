@@ -142,4 +142,67 @@ describe('CassettePlayer', () => {
       content: 'Build succeeded',
     });
   });
+
+  it('migrates v1 cassette to v2 with source: skill_run', async () => {
+    const filePath = join(TMP_DIR, 'v1-migrate.cassette.json');
+    await writeFile(filePath, JSON.stringify(makeCassette()));
+
+    const player = new CassettePlayer(filePath);
+    const cassette = await player.load();
+
+    expect(cassette.version).toBe(2);
+    expect(cassette.metadata.source).toBe('skill_run');
+  });
+
+  it('replays v1 cassette with runManifest', async () => {
+    const filePath = join(TMP_DIR, 'v1-manifest.cassette.json');
+    await writeFile(filePath, JSON.stringify(makeCassette()));
+
+    const player = new CassettePlayer(filePath);
+    const result = await player.replay();
+
+    expect(result.runManifest).toBeDefined();
+    expect(result.runManifest?.provider).toBe('openai');
+  });
+
+  it('replays observed cassette without runManifest', async () => {
+    const filePath = join(TMP_DIR, 'observed.cassette.json');
+    const observed = {
+      version: 2,
+      recordedAt: '2025-03-06T10:00:00Z',
+      metadata: {
+        source: 'observed',
+        sessionId: 'sess-123',
+        tool: 'claude-code',
+      },
+      result: makeCassette().result,
+    };
+    await writeFile(filePath, JSON.stringify(observed));
+
+    const player = new CassettePlayer(filePath);
+    const result = await player.replay();
+
+    expect(result.runManifest).toBeUndefined();
+    expect(result.output).toBe('Deployment complete.');
+    expect(result.cacheStatus).toBe('cassette_replay');
+  });
+
+  it('skips prompt validation for observed cassettes', async () => {
+    const filePath = join(TMP_DIR, 'observed-no-validate.cassette.json');
+    const observed = {
+      version: 2,
+      recordedAt: '2025-03-06T10:00:00Z',
+      metadata: {
+        source: 'observed',
+        sessionId: 'sess-456',
+      },
+      result: makeCassette().result,
+    };
+    await writeFile(filePath, JSON.stringify(observed));
+
+    const player = new CassettePlayer(filePath, [], true);
+    // Should not throw even in strict mode — observed cassettes skip validation
+    const result = await player.replay('any prompt', 'any-hash');
+    expect(result.output).toBe('Deployment complete.');
+  });
 });
