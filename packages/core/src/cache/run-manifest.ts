@@ -33,7 +33,11 @@ export function computeManifest(params: {
     skillHash,
     promptHash: sha256(params.prompt),
     toolDefsHash: sha256(
-      JSON.stringify((params.tools ?? []).map((t) => ({ name: t.name, schema: t.jsonSchema })))
+      stableStringify(
+        [...(params.tools ?? [])]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((t) => ({ name: t.name, schema: t.jsonSchema }))
+      )
     ),
     provider: params.provider,
     model: params.model,
@@ -59,4 +63,14 @@ export function manifestHash(manifest: RunManifest): string {
 
 function sha256(input: string): string {
   return createHash('sha256').update(input).digest('hex');
+}
+
+/** JSON.stringify with sorted keys at every level — produces a stable output regardless of insertion order. */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  const sorted = Object.keys(value as Record<string, unknown>)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`);
+  return `{${sorted.join(',')}}`;
 }
