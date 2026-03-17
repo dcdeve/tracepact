@@ -91,6 +91,9 @@ function zodToJsonSchema(schema: any): Record<string, unknown> {
       return { ...inner, nullable: true };
     }
     default:
+      console.warn(
+        `[define-tools] Unrecognized Zod type "${typeName}" — falling back to { type: 'object' }. The LLM may receive an imprecise schema.`
+      );
       return { type: 'object' };
   }
 }
