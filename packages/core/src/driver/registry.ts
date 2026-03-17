@@ -15,6 +15,18 @@ const NATIVE_DRIVERS: Record<string, DriverConstructor> = {
 };
 
 /**
+ * Optional callback injected by execute.ts to check whether the module-level
+ * registry cache is non-empty. Avoids a circular import while still letting
+ * registerDriver() warn when a stale cached registry exists.
+ */
+let _isRegistryCachePopulated: (() => boolean) | null = null;
+
+/** @internal Called once by execute.ts at module init to wire up the stale-cache check. */
+export function _setRegistryCacheChecker(fn: () => boolean): void {
+  _isRegistryCachePopulated = fn;
+}
+
+/**
  * Register a custom driver constructor for a provider name.
  *
  * Call this before constructing a DriverRegistry (or before any executePrompt call).
@@ -28,6 +40,11 @@ const NATIVE_DRIVERS: Record<string, DriverConstructor> = {
  * ```
  */
 function registerDriver(name: string, DriverClass: DriverConstructor): void {
+  if (_isRegistryCachePopulated?.()) {
+    log.warn(
+      `DriverRegistry.register("${name}") was called after a registry was already cached. The new driver will not be used for providers already cached. Call clearRegistryCache() before register() to avoid stale registries.`
+    );
+  }
   NATIVE_DRIVERS[name] = DriverClass;
 }
 

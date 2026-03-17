@@ -10,13 +10,16 @@ import type { ParsedSkill } from '../parser/types.js';
 import { RedactionPipeline } from '../redaction/pipeline.js';
 import { MockSandbox } from '../sandbox/mock-sandbox.js';
 import type { TypedToolDefinition } from '../tools/types.js';
-import { DriverRegistry } from './registry.js';
+import { DriverRegistry, _setRegistryCacheChecker } from './registry.js';
 import { detectProvider, resolveConfig } from './resolve.js';
 import type { RunConfig, RunResult } from './types.js';
 
 // Module-level cache: reuse registries across executePrompt() calls when config is stable
 // (i.e. no per-call providers override that would produce a different TracepactConfig).
 const _registryCache = new Map<string, DriverRegistry>();
+
+// Wire up the stale-cache checker so registry.ts can warn if register() is called late.
+_setRegistryCacheChecker(() => _registryCache.size > 0);
 
 /** Clear the module-level registry cache. Call this in test teardown (e.g. afterAll) to
  * prevent stale registries from leaking across test suites that change env vars. */
