@@ -4,7 +4,7 @@
   "description": "Behavioral testing framework for AI agents",
   "workspaces": ["packages/*"],
   "scripts": {
-    "build": "npm run build -w packages/core && npm run build -w packages/vitest -w packages/cli -w packages/promptfoo -w packages/mcp-server",
+    "build": "npm run build -w packages/core && npm run build -w packages/vitest -w packages/cli -w packages/promptfoo -w packages/mcp-server -w packages/ai-sdk",
     "test": "npm run test --workspaces --if-present",
     "lint": "npx biome check .",
     "lint:fix": "npx biome check --write .",
