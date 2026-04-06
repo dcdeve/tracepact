@@ -20,10 +20,10 @@
     "directory": "packages/core"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "openai": "^6.27.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "openai": "^6.33.0",
     "stemmer": "^2.0.1",
-    "yaml": "^2.6.0"
+    "yaml": "^2.8.3"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": ">=0.30.0",
