@@ -26,8 +26,8 @@
     "@ai-sdk/provider": ">=3.0.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "^3.0.0",
-    "ai": "^6.0.0",
+    "@ai-sdk/provider": "^3.0.10",
+    "ai": "^6.0.175",
     "tsup": "^8.3.0",
     "typescript": "^5.5.0",
     "vitest": "^2.1.0"
